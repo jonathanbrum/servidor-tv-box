@@ -11,7 +11,8 @@ Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **
 | **Associar um repositório novo do GitHub** (Deploy Automático) | **Portainer** (`Stacks` ➡️ `Repository`) | [👉 Abrir Manual do Portainer](docs/08-manual-portainer-deploy-github.md) |
 | **Criar tabelas no Banco de Dados, Login ou subir um Site HTML/JS** | **PocketBase** (`:8090/_/`) | [👉 Abrir Manual do PocketBase](docs/09-manual-pocketbase-banco-e-api.md) |
 | **Criar uma API rápida, Bot (Telegram/Discord) ou Automação** | **Node-RED** (`:1880`) | [👉 Abrir Manual do Node-RED](docs/10-manual-casaos-e-nodered.md#-parte-2-como-usar-o-node-red-backends-bots-e-automação-sem-código-pesado) |
-| **Acessar meus sites e painéis pela Internet (sem abrir portas)** | **Cloudflare Tunnel** (`Zero Trust`) | [👉 Abrir Manual do Cloudflare](docs/11-manual-cloudflare-tunnel.md) |
+| **Mandar link público e fixo para amigos (100% grátis)** | **Tailscale Funnel** (`.ts.net`) | [👉 Abrir Manual do Funnel](docs/12-manual-tailscale-funnel.md) |
+| **Acessar meus sites com Domínio Próprio (sem abrir portas)** | **Cloudflare Tunnel** (`Zero Trust`) | [👉 Abrir Manual do Cloudflare](docs/11-manual-cloudflare-tunnel.md) |
 | **Ligar/Desligar apps (RAM) ou abrir o HD de 1 TB no Windows** | **CasaOS** (`Painel Principal`) | [👉 Abrir Manual do CasaOS](docs/10-manual-casaos-e-nodered.md#-parte-1-como-usar-o-casaos-no-dia-a-dia-httpip_da_tv_box) |
 | **Deixar 10, 20 ou 30 projetinhos ON ao mesmo tempo** | **Arquitetura Multi-Projetos** | [👉 Ver Regras de Ouro de RAM](docs/07-deploy-visual-estilo-vercel.md) |
 
@@ -41,7 +42,12 @@ Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **
 * **Pausar/Iniciar Projeto:** Passe o mouse no ícone do app ➡️ **3 pontinhos (`⋮`)** ➡️ **Desligar / Iniciar**.
 * **Subir Site Sem GitHub (Arrastar e Soltar):** Abra o app **`Files`** ➡️ `AppData` ➡️ `pocketbase` ➡️ `pb_public` ➡️ crie uma pasta `meu-site` e jogue seu `index.html` lá dentro. Ele abre na hora em `http://<IP_DA_TV_BOX>:8090/meu-site/`!
 
-### 5. ☁️ Cloudflare Tunnel — Liberar Acesso Externo com HTTPS
+### 5. 🔗 Tailscale Funnel — Link Permanente para Amigos (Grátis)
+1. Use seu link fixo `https://<SEU_TAILNET>.ts.net/` para abrir o CasaOS ou `https://<SEU_TAILNET>.ts.net:8443/` para abrir o PocketBase e sites.
+2. Seus amigos não precisam instalar nada: basta clicar no link no WhatsApp que abre direto no celular com HTTPS seguro!
+   *(Veja os comandos de troca de porta no [Manual do Tailscale Funnel](docs/12-manual-tailscale-funnel.md)).*
+
+### 6. ☁️ Cloudflare Tunnel — Domínio Próprio com HTTPS
 1. No painel [dash.cloudflare.com](https://dash.cloudflare.com) ➡️ **Zero Trust** ➡️ **Networks** ➡️ **Tunnels**.
 2. Clique no seu túnel ➡️ **Configure** ➡️ **Public Hostname** ➡️ **+ Add a public hostname**.
 3. Escolha o subdomínio e aponte para `HTTP` `127.0.0.1:<PORTA>` (ex.: `127.0.0.1:80` para CasaOS, `127.0.0.1:8090` para PocketBase).
