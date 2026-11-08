@@ -1,0 +1,4 @@
+# Arquivos locais privados (nunca sobem para o GitHub)
+CREDENCIAIS_LOCAIS.md
+*.env
+.env*
