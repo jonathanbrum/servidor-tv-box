@@ -2,14 +2,17 @@ services:
   wiki-sync:
     image: alpine/git:latest
     container_name: wiki-tvbox-sync
-    restart: "no"
+    restart: unless-stopped
     entrypoint: /bin/sh
     command: >
-      -c "if [ -d /dest/.git ]; then
-            cd /dest && git fetch --all && git reset --hard origin/main;
-          else
-            rm -rf /dest/* /dest/.[!.]* 2>/dev/null;
-            git clone https://github.com/jonathanbrum/servidor-tv-box.git /dest;
-          fi && echo 'Wiki sincronizada com sucesso em /pb_public/wiki/'"
+      -c "while true; do
+            if [ -d /dest/.git ]; then
+              cd /dest && git fetch --all -q && git reset --hard origin/main -q;
+            else
+              rm -rf /dest/* /dest/.[!.]* 2>/dev/null;
+              git clone -q https://github.com/jonathanbrum/servidor-tv-box.git /dest;
+            fi;
+            sleep 60;
+          done"
     volumes:
       - /DATA/AppData/pocketbase/pb_public/wiki:/dest
