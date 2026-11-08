@@ -5,6 +5,7 @@
   * [🐳 Portainer (Subir Repo do GitHub)](docs/08-manual-portainer-deploy-github.md)
   * [⚡ PocketBase (Banco, Login e Sites)](docs/09-manual-pocketbase-banco-e-api.md)
   * [🏠 CasaOS & Node-RED (NAS e Bots)](docs/10-manual-casaos-e-nodered.md)
+  * [☁️ Cloudflare Tunnel (Acesso Externo Seguro)](docs/11-manual-cloudflare-tunnel.md)
   * [🚀 Deixar Vários Projetos ON 24/7](docs/07-deploy-visual-estilo-vercel.md)
   * [🎮 Ideias: Jogos, Git e Smart Home](docs/06-arquitetura-homelab-e-servicos.md)
 
