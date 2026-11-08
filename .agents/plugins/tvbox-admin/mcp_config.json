@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tvbox-ssh": {
+      "command": "node",
+      "args": [
+        ".agents/plugins/tvbox-admin/mcp-server.mjs"
+      ]
+    }
+  }
+}

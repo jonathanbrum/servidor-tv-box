@@ -118,4 +118,36 @@ Como o sistema utiliza **Boot Híbrido** e está confinado em uma partição lim
 
 ---
 
+## 7. IP Fixo (Reserva DHCP) e Acesso por Nome (`http://tvbox.local`)
+
+Para nunca mais perder o acesso aos painéis quando o roteador reiniciar e poder abrir o servidor pelo nome **`http://tvbox.local`** tanto no computador quanto no celular:
+
+### 7.1. Reserva de IP no Roteador (DHCP Static Lease)
+A interface Ethernet (`end0`) da placa possui endereço MAC físico fixo de fábrica (`addr_assign_type = 0`). Basta associar o MAC da interface `end0` ao IP `<IP_DA_TV_BOX>` na tabela **LAN > Reserva de DHCP** do roteador.
+
+### 7.2. Configuração do Hostname e mDNS (`avahi-daemon`) sem Conflito
+Para que o endereço `http://tvbox.local` responda instantaneamente no Windows, Android e iOS sem atraso de IPv6 ou conflito com as pontes virtuais do Docker (`docker0`, `br-*`, `veth*`):
+
+```bash
+# 1. Definir o hostname para tvbox
+hostnamectl set-hostname tvbox
+sed -i 's/x96q-v5-1/tvbox/g' /etc/hosts
+
+# 2. Instalar o Avahi Daemon (mDNS padrão para PC e Celular)
+apt-get update && apt-get install -y avahi-daemon
+
+# 3. Isolar o Avahi apenas na placa de rede física (end0) e apenas em IPv4
+sed -i 's/^#allow-interfaces=.*/allow-interfaces=end0/' /etc/avahi/avahi-daemon.conf
+sed -i 's/use-ipv6=yes/use-ipv6=no/' /etc/avahi/avahi-daemon.conf
+
+# 4. Evitar atraso de DNS reverso no login SSH
+grep -q '^UseDNS no' /etc/ssh/sshd_config || echo 'UseDNS no' >> /etc/ssh/sshd_config
+
+systemctl restart avahi-daemon ssh
+```
+
+> ⚠️ **Importante:** Não ative `MulticastDNS=yes` no `systemd-resolved` quando o `avahi-daemon` estiver instalado, pois ambos disputam a porta UDP `5353` e causam lentidão na resolução de rede. Deixe apenas o `avahi-daemon` gerenciar o `.local`.
+
+---
+
 [➡️ Próxima Etapa: 06 - Arquitetura Home Lab e Instalação do CasaOS](06-arquitetura-homelab-e-servicos.md)

@@ -80,6 +80,30 @@ docker image prune -f
 apt clean
 ```
 
+### 4.1. Diagnóstico do Erro `"Failed to load apps, please refresh later."` no CasaOS
+Quando o painel do CasaOS carrega o status de CPU/RAM/Disco mas não exibe os ícones dos aplicativos e mostra o aviso `"Failed to load apps, please refresh later."`, a rota `/v2/app_management/web/appgrid` do serviço `casaos-app-management` está:
+1. Demorando mais de 30 segundos para responder porque o `dockerd` está sobrecarregado por algum container pesado/incompatível com 1 GB de RAM em loop/`unhealthy` (ex.: `frigate` NVR com IA/OpenCV que exige 4 GB+ de RAM e eleva o *Load Average* para `20+`); ou
+2. Perdendo o registro de rota no `casaos-gateway`.
+
+**Comandos de Diagnóstico e Reparo Imediato:**
+```bash
+# 1. Checar se há containers em estado unhealthy ou Restarting travando o dockerd
+docker ps -a
+
+# 2. Se houver container pesado travando o sistema (ex: frigate), desativar restart e parar
+docker update --restart=no <nome_do_container> && docker stop <nome_do_container>
+
+# 3. Reiniciar o gerenciador de apps do CasaOS e medir o tempo da API appgrid (deve ser < 2s)
+systemctl restart casaos-app-management
+curl -s -o /dev/null -w 'appgrid HTTP: %{http_code} in %{time_total}s\n' http://127.0.0.1/v2/app_management/web/appgrid
+```
+
+### 4.2. Diagnóstico de Lentidão no `tvbox.local` (mDNS / Avahi) e SSH
+Para garantir que `http://tvbox.local` responda em milissegundos no PC e no celular sem conflito com redes Docker ou atraso de IPv6:
+* O `avahi-daemon` deve estar restrito à interface física (`allow-interfaces=end0`) e apenas IPv4 (`use-ipv6=no`) em `/etc/avahi/avahi-daemon.conf`.
+* **Não** ative `MulticastDNS=yes` no `systemd-resolved` simultaneamente com o `avahi-daemon` (evita disputa na porta UDP 5353).
+* Mantenha `UseDNS no` em `/etc/ssh/sshd_config` para login SSH instantâneo.
+
 ---
 
 ## 🔄 5. Pós-Manutenção: Registrar na Documentação

@@ -1,0 +1,7 @@
+{
+  "name": "tvbox-admin",
+  "author": {
+    "name": "Jonathan Brum"
+  },
+  "description": "Plugin portátil de administração, diagnóstico S.M.A.R.T., energia e execução SSH via MCP para a Mini-VPS TV Box (R001 / X96Q v5.1)."
+}
