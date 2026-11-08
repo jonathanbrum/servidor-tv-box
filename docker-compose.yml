@@ -1,3 +1,4 @@
+name: wiki-tv-box
 services:
   wiki-sync:
     image: alpine/git:latest
@@ -16,3 +17,21 @@ services:
           done"
     volumes:
       - /DATA/AppData/pocketbase/pb_public/wiki:/dest
+    x-casaos:
+      icon: https://docsify.js.org/_media/icon.svg
+      index: /wiki/
+      title:
+        en_us: Wiki Docsify
+      webui_port: "8090"
+x-casaos:
+  author: self
+  category: self
+  hostname: ""
+  icon: https://docsify.js.org/_media/icon.svg
+  index: /wiki/
+  is_uncontrolled: false
+  port_map: "8090"
+  scheme: http
+  title:
+    custom: "Wiki Docsify"
+    en_us: Wiki Docsify
