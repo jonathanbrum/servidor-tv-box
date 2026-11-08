@@ -56,9 +56,65 @@ Mem:           978Mi       199Mi       318Mi       460Ki       548Mi       779Mi
 Swap:          2.5Gi       4.3Mi       2.5Gi
 ```
 
-* **Espaço Livre Real (`Avail`):** `904 GB` livres (de `869 GB` antes do `tune2fs`).
+* **Espaço Livre Real (`Avail`):** Inicialmente `904 GB` (posteriormente blindado em **300 GB** / **`286 GB` livres** para isolar fisicamente os setores finais do disco — ver [Seção 6 do Doc 04](04-armazenamento-e-boot-hibrido.md#6-engenharia-de-blindagem-do-hd-correção-do-bug-uas-seagate--isolamento-short-stroking-de-300-gb--concluído)).
 * **Consumo Base de RAM do Armbian Minimal:** Apenas **`199 MiB`** em uso, restando **`779 MiB` livres** para serviços e contêineres.
 * **Swap Total Ativo:** **`2.5 GiB`** (`489.2 MiB` ZRAM de alta prioridade + `2.0 GiB` Swapfile no HD).
+
+---
+
+## 5. Operação no Dia a Dia: Ligar, Desligar e Monitorar Saúde do HD
+
+### 5.1. Como Ligar e Desligar sem o Controle Remoto?
+Diferente do Android original (que ficava em *Standby* aguardando o controle infravermelho), no Armbian Linux a TV Box opera como um servidor dedicado:
+* **Consumo 24/7:** A placa Allwinner H313 consome apenas **3W a 5W** (menos que uma lâmpada LED pequena), sendo projetada para ficar ligada 24/7.
+* **Para DESLIGAR com segurança (sem corromper o HD):**
+  * **Via SSH:** Executar `poweroff` (ou `shutdown -h now`) e aguardar ~15 segundos até o HD parar de girar antes de tirar da tomada.
+  * **Via Navegador (CasaOS):** Clicar no botão de **Desligar / Reiniciar** no painel web (`http://<IP_DA_TV_BOX>`).
+* **Para LIGAR novamente:**
+  * Toda TV Box possui *Auto Power-On* físico: basta conectar a fonte na tomada (ou acionar uma **Tomada Inteligente Wi-Fi**) que ela inicia o boot automaticamente sem precisar do controle remoto.
+* **E se ligar a TV Box com o HD USB desconectado?**
+  * **Não estraga nada!** O Cartão MicroSD carrega o kernel, procura o `UUID` do HD por ~30 segundos e, não encontrando, estaciona em segurança na tela `(initramfs)`. Basta desligar, plugar o HD USB e ligar novamente.
+  * **Sistema Reserva no Cartão SD:** O sistema original no Cartão MicroSD de 2 GB (`/dev/mmcblk0p1`) permanece intacto! Se um dia precisar iniciar sem o HD, basta digitar no `(initramfs)`:
+    ```bash
+    mount -t ext4 /dev/mmcblk0p1 /root
+    echo "rootdev=/dev/mmcblk0p1" >> /root/boot/armbianEnv.txt
+    echo "" >> /root/boot/armbianEnv.txt
+    reboot -f
+    ```
+
+### 5.2. Como Monitorar a Saúde e Temperatura do HD (S.M.A.R.T.)
+Graças ao desbloqueio do driver `usb-storage` (`0x0bc2:0xa003:u`), você pode consultar a saúde física e a temperatura do HD a qualquer momento via SSH:
+```bash
+smartctl -a /dev/sda
+```
+
+---
+
+## 6. Guia de Migração / Clonagem Futura (Trocar o HD por um SSD ou Outro Disco)
+
+Como o sistema utiliza **Boot Híbrido** e está confinado em uma partição limpa de **300 GB** (usando atualmente apenas `~5.4 GB`), você **não precisa clonar setor por setor** de 1 TB. Você pode migrar para **qualquer SSD SATA em Case USB (ex: 120 GB, 240 GB, 480 GB) ou outro HD** copiando apenas os arquivos reais via `rsync`!
+
+> 💡 **Recomendação de Upgrade Futuro:** Prefira um **SSD SATA em Case USB** em vez de Pen Drive comum, pois Pen Drives aquecem e desgastam rápido com gravações constantes de logs/Docker 24/7, enquanto um SSD é silencioso, consome menos energia da porta USB e é até 10x mais rápido em leituras aleatórias (IOPS).
+
+### Passo a Passo para Clonar/Migrar para um Disco Novo no Futuro:
+1. Conecte o disco novo na **segunda porta USB** da TV Box (ele será reconhecido como `/dev/sdb`).
+2. Crie uma partição Linux e formate em `ext4`:
+   ```bash
+   echo 'type=83' | sfdisk /dev/sdb
+   mkfs.ext4 -L armbian_ssd /dev/sdb1
+   ```
+3. Monte o disco novo e copie todo o sistema ao vivo com `rsync`:
+   ```bash
+   mkdir -p /mnt/novo
+   mount /dev/sdb1 /mnt/novo
+   rsync -aAXHv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / /mnt/novo/
+   mkdir -p /mnt/novo/{dev,proc,sys,tmp,run,mnt,media}
+   chmod 555 /mnt/novo/proc /mnt/novo/sys
+   ```
+4. Descubra o novo código `UUID` com `blkid /dev/sdb1` e substitua o `UUID` antigo do HD em dois lugares:
+   * No arquivo `/mnt/novo/etc/fstab` (na linha do `/`)
+   * No arquivo `/boot/armbianEnv.txt` (na linha `rootdev=UUID=...`, mantendo sempre uma linha em branco no final do arquivo!)
+5. Desligue com `poweroff`, remova o HD antigo, deixe apenas o SSD/disco novo conectado e ligue na tomada!
 
 ---
 

@@ -145,9 +145,77 @@ zram1        251:1    0    50M  0 disk /var/log
 zram2        251:2    0     0B  0 disk 
 ```
 
-* **`/` (Raiz do Sistema):** Montada em `/dev/sda1` (HD Externo de 1 TB), com `1.1G` usado (1%) e **`869G` livres** (expansível para `~906G` livres reduzindo a reserva de blocos do `ext4`).
+* **`/` (Raiz do Sistema):** Inicialmente montada em `/dev/sda1` com 1 TB, posteriormente otimizada e blindada para **300 GB** (`295G` úteis / `286G` livres) após diagnóstico avançado de USB e S.M.A.R.T. (ver Seção 6 abaixo).
 * **`/boot` (Partição de Boot):** Montada em `/dev/mmcblk0p1` (Cartão MicroSD de 2 GB), atuando apenas como ignição de inicialização.
 
 ---
 
-[➡️ Próxima Etapa: 05 - Pós-Instalação, Otimização e Serviços](05-pos-instalacao-e-otimizacao.md)
+## 6. Engenharia de Blindagem do HD: Correção do Bug `UAS` (Seagate) + Isolamento *Short-Stroking* de 300 GB — ✅ Concluído!
+
+Durante os testes de estresse e leitura do log do kernel (`dmesg`), identificamos dois fatores críticos que causavam lentidão extrema no boot (~32 minutos) e erros de E/S (`I/O error` / `Structure needs cleaning`):
+
+### 6.1. O Bug do Protocolo `UAS` na Ponte USB Seagate (`0bc2:a003`) e a Regra da Quebra de Linha do U-Boot
+1. **Sintoma no `dmesg`:**
+   ```text
+   sd 0:0:0:0: [sda] tag#29 uas_eh_abort_handler 0 uas-tag 18 inflight: CMD
+   sd 0:0:0:0: [sda] tag#17 uas_zap_pending 0 uas-tag 1 inflight: CMD
+   ```
+   A controladora USB da Seagate (`ID 0bc2:a003 Seagate RSS LLC Backup Plus`) engasga ao receber 30 comandos simultâneos do driver `uas` (*USB Attached SCSI*) na porta USB 2.0 da TV Box.
+2. **Por que o Quirk do `armbian-install` não havia funcionado de primeira?**
+   O `armbian-install` adicionou `,0x0bc2:0xa003:u` na última linha do `/boot/armbianEnv.txt` **sem quebra de linha (`\n`) no final**. O comando `env import` do U-Boot ignora a última linha do arquivo se ela não terminar com `\n`!
+3. **Solução Definitiva no `/boot/armbianEnv.txt`:**
+   Adicionamos a quebra de linha final e passamos os parâmetros também via `extraargs` (incluindo `systemd.gpt_auto=0` para evitar leitura do setor final do disco):
+   ```ini
+   verbosity=1
+   bootlogo=false
+   console=both
+   disp_mode=1920x1080p60
+   overlay_prefix=sun50i-h616
+   rootdev=UUID=f92447b4-a725-4dbb-a5d0-1218125ff5e7
+   rootfstype=ext4
+   extraargs=systemd.gpt_auto=0 usb-storage.quirks=0x2537:0x1066:u,0x2537:0x1068:u,0x0bc2:0xa003:u
+   usbstoragequirks=0x2537:0x1066:u,0x2537:0x1068:u,0x0bc2:0xa003:u
+   ```
+4. **Resultado Imediato:**
+   * O Kernel confirmou: `usb 1-1: UAS is ignored for this device, using usb-storage instead`.
+   * O tempo de montagem da raiz no boot caiu de **1.920 segundos (32 minutos)** para **11,5 segundos**!
+   * O suporte a diagnóstico **S.M.A.R.T. (`smartctl -a /dev/sda`)** foi automaticamente desbloqueado!
+
+---
+
+### 6.2. Raio-X S.M.A.R.T. e Isolamento Físico de Superfície (*Short-Stroking* em 300 GB)
+
+Com o `smartctl -a /dev/sda` desbloqueado, descobrimos as especificações internas do disco:
+* **Disco Interno:** `Seagate Samsung SpinPoint M8 (ST1000LM024 HN-M101MBB)` — 5400 RPM
+* **Horas de Uso (`Power_On_Hours`):** Apenas **`906 horas`** (~37 dias de uso total!)
+* **Taxa de Leitura Sequencial (`dd`):** **`39.5 MB/s`** (limite máximo físico do barramento USB 2.0!)
+* **Diagnóstico de Superfície (`Current_Pending_Sector`):** Foram identificados `1833` setores pendentes concentrados **após a marca de ~371 GB** (a partir do setor LBA `725616640`), enquanto os primeiros **300 GB** (trilhas externas do disco) passaram com **100% de perfeição e zero erros** nos testes de leitura (`10 GB`, `100 GB`, `200 GB` e `300 GB`).
+
+#### Como o HD foi blindado em 300 GB sem perder nenhum arquivo:
+1. Demos boot temporariamente pelo Cartão MicroSD (`rootdev=/dev/mmcblk0p1`).
+2. Encolhemos o sistema de arquivos `ext4` de 931,5 GB para dentro da zona limpa com `resize2fs -p /dev/sda1 290G`, realocando todos os blocos usados para o início saudável do disco.
+3. Redimensionamos a partição `/dev/sda1` na tabela de partições para cravar em **300 GB** (`start=2048, size=300G` via `sfdisk`) e ajustamos o `ext4` com `resize2fs /dev/sda1`, deixando o restante do disco (300 GB a 1000 GB) **não alocado e fisicamente isolado**.
+4. Reparamos os *inodes* corrompidos das pastas `/proc` e `/sys` com `debugfs` (`unlink proc` / `unlink sys`) + `e2fsck -fy /dev/sda1` e validamos **100% dos 68.407 arquivos** do sistema.
+
+#### Estado Final Blindado (`df -h / && lsblk && free -h`):
+```text
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       295G  5.4G  286G   2% /
+NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+sda           8:0    0 931.5G  0 disk
+└─sda1        8:1    0   300G  0 part /var/log.hdd
+                                      /
+mmcblk0     179:0    0   1.8G  0 disk
+└─mmcblk0p1 179:1    0   1.7G  0 part /boot
+                                      /media/mmcboot
+zram0       251:0    0 489.2M  0 disk [SWAP]
+zram1       251:1    0    50M  0 disk /var/log
+zram2       251:2    0     0B  0 disk
+               total        used        free      shared  buff/cache   available
+Mem:           978Mi       447Mi        59Mi       3.0Mi       550Mi       530Mi
+Swap:          2.5Gi        24Mi       2.5Gi
+```
+
+---
+
+[➡️ Próxima Etapa: 05 - Pós-Instalação, Otimização, Energia e Clonagem](05-pos-instalacao-e-otimizacao.md)

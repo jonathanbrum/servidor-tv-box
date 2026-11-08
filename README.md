@@ -52,15 +52,15 @@ Toda a documentação técnica de baixo nível (caso algum dia você precise reg
 ### Especificações da Máquina
 * **Placa / SoC:** TV Box `R001` (`X96Q v5.1`) — Allwinner H313 Quad-Core ARM64
 * **Memória:** 1 GB DDR3 + `2.5 GiB` Swap (`489M` ZRAM + `2G` Swapfile no HD)
-* **Armazenamento Híbrido:** Boot (`/boot`) em MicroSD de 2 GB + Sistema (`/`) em HD Externo USB 1 TB Seagate (`904 GB` livres)
+* **Armazenamento Híbrido Blindado:** Boot (`/boot`) em MicroSD de 2 GB + Sistema (`/`) em HD Externo USB Seagate `ST1000LM024` — **Blindado em 300 GB** (`286 GB` livres nas trilhas iniciais 100% saudáveis via *Short-Stroking* + Quirk USB `0bc2:a003:u`)
 * **Sistema Base:** Armbian Bookworm Minimal (Kernel `6.12.64`)
 
 ### Capítulos do Histórico de Instalação
 1. [01 - Hardware e Diagnóstico da Placa (DDR3 v5.1)](docs/01-hardware-e-diagnostico.md)
 2. [02 - Gravação do Armbian no Cartão SD de 2 GB](docs/02-instalacao-armbian-sd.md)
 3. [03 - Rede Ethernet e Acesso SSH](docs/03-rede-e-acesso-ssh.md)
-4. [04 - Particionamento e Boot Híbrido (SD + HD 1 TB)](docs/04-armazenamento-e-boot-hibrido.md)
-5. [05 - Pós-Instalação, Liberação de +37 GB (tune2fs) e Swap](docs/05-pos-instalacao-e-otimizacao.md)
+4. [04 - Particionamento, Boot Híbrido e Blindagem do HD em 300 GB (Short-Stroking + Correção UAS)](docs/04-armazenamento-e-boot-hibrido.md)
+5. [05 - Pós-Instalação, Swap, Energia (Ligar/Desligar) e Guia de Clonagem Futura](docs/05-pos-instalacao-e-otimizacao.md)
 6. [06 - Catálogo de Expansão (Servidores de Jogos, Gitea, Smart Home)](docs/06-arquitetura-homelab-e-servicos.md)
 7. [Resumo Inicial do Projeto](resumo_do_projeto_r001_tv_box_para_servidor_linux.md)
 
