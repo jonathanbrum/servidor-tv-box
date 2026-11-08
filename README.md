@@ -38,8 +38,19 @@ Bem-vindo à documentação central (Wiki) da transformação de uma **TV Box ge
    * Liberação de +37 GB extras no `ext4` (`tune2fs`), criação de Swap de 2 GB de segurança e atualização do sistema.
 6. **[06 - Arquitetura Home Lab ("Mini-VPS", Smart Home, Git, DB e Jogos)](docs/06-arquitetura-homelab-e-servicos.md)**
    * Painel de Controle Geral (**CasaOS**), servidores de Bancos de Dados, Git próprio (**Gitea**), Automação Residencial (**Home Assistant**), Servidores de Jogos e estratégia para 2 roteadores.
-7. **[07 - Deploy Visual "Estilo Vercel / Firebase" em 1 GB de RAM](docs/07-deploy-visual-estilo-vercel.md)** *(📍 Etapa Atual)*
-   * Como fazer deploy automático via GitHub (**Portainer GitOps**), banco de dados visual estilo Firebase (**PocketBase** / **Adminer**) e automação visual (**Node-RED**) tudo pelo navegador sem terminal.
+7. **[07 - Deploy Visual "Estilo Vercel / Firebase" e Multi-Projetos 24/7](docs/07-deploy-visual-estilo-vercel.md)**
+   * Como manter 10, 20 ou 50 projetos online ao mesmo tempo em 1 GB de RAM combinando **Portainer GitOps**, **PocketBase** e **Node-RED**.
+
+---
+
+## 📖 Manuais Práticos de Uso Diário (Passo a Passo Simples)
+
+8. **[08 - Manual do Portainer: Como Associar um Repositório Novo do GitHub](docs/08-manual-portainer-deploy-github.md)**
+   * Modelos prontos de `docker-compose.yml` (copiar e colar) para subir sites estáticos/React ou servidores Node.js/Multiplayer com auto-deploy a cada 60 segundos.
+9. **[09 - Manual do PocketBase: Banco de Dados, Permissões, Login e Código](docs/09-manual-pocketbase-banco-e-api.md)**
+   * Como criar tabelas (`Collections`), destravar as permissões (`API Rules`) e código HTML/JS pronto para ler, salvar dados e fazer login de usuários.
+10. **[10 - Manual do CasaOS (Arquivos/NAS/RAM) & Node-RED (APIs e Bots)](docs/10-manual-casaos-e-nodered.md)**
+    * Como compartilhar o HD de 1 TB no Windows Explorer (NAS), controlar a memória RAM e criar APIs/Bots arrastando bloquinhos no Node-RED.
 
 ---
 
