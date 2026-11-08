@@ -78,6 +78,33 @@
     .markdown-section hr {
       border-bottom: 1px solid #1e293b;
     }
+
+    details {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+    }
+
+    details summary {
+      cursor: pointer;
+      color: #94a3b8;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+
+    details summary:hover,
+    details[open] summary {
+      color: #38bdf8;
+    }
+
+    .sidebar-nav details {
+      background: transparent;
+      border: 1px dashed #1e293b;
+      padding: 0.4rem 0.6rem;
+      margin: 0.5rem 0.5rem 0 0;
+    }
   </style>
 </head>
 <body>

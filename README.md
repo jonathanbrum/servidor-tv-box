@@ -1,64 +1,67 @@
-# 🖥️ Wiki do Projeto: Servidor Doméstico Linux (TV Box R001 / Allwinner H313)
+# 🚀 Central da Mini-VPS — Guia Prático dos Apps
 
-Bem-vindo à documentação central (Wiki) da transformação de uma **TV Box genérica Android (`R001` / `REDONE`)** em um **Servidor Doméstico Linux (Armbian Bookworm)** com arquitetura de **Boot Híbrido** (Bootloader em Cartão MicroSD de 2 GB + Sistema Operacional em HD Externo USB de 1 TB).
-
----
-
-## 📌 Painel Rápido do Servidor
-
-| Propriedade | Valor / Especificação |
-| :--- | :--- |
-| **Hostname** | `x96q-v5-1` |
-| **Repositório Oficial (GitHub)** | https://github.com/jonathanbrum/servidor-tv-box |
-| **Site da Wiki na TV Box (GitOps)** | `http://<IP_DA_TV_BOX>:8090/wiki/` |
-| **Painel de Controle Web (CasaOS)** | `http://<IP_DA_TV_BOX>` |
-| **PocketBase (Banco + Auth + API + Hosting)** | `http://<IP_DA_TV_BOX>:8090/_/` (Admin) / `http://<IP_DA_TV_BOX>:8090/` (Sites) |
-| **Portainer CE (Deploy Automático GitOps)** | Acessível via ícone no painel do CasaOS |
-| **Node-RED (Automação & Fluxos Visuais)** | Acessível via ícone no painel do CasaOS |
-| **Comando de Acesso SSH** | `ssh root@<IP_DA_TV_BOX>` |
-| **SoC / CPU** | Allwinner H313 (`sun50iw9p1`) Quad-Core Cortex-A53 |
-| **Memória RAM** | 1 GB DDR3 (`199 MiB` em uso / `779 MiB` livres) + `2.5 GiB` Swap (`489M` ZRAM + `2G` HD) |
-| **Disco de Boot (`/boot`)** | MicroSD 2 GB (`/dev/mmcblk0p1` - `1.7G` montado em `/boot`) |
-| **Disco do Sistema (`/`)** | HD Externo USB 1 TB Seagate `Backup+ BK` (`/dev/sda1` - `916G` totais / **`904G` livres**) |
-| **Sistema Operacional** | Armbian Unofficial 26.02.0-trunk (Debian 12 Bookworm) - Kernel `6.12.64` |
+Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **como usar os aplicativos instalados no seu dia a dia** para subir projetos do GitHub, criar bancos de dados, hospedar sites e criar automações sem complicação.
 
 ---
 
-## 📚 Índice da Wiki (Ramificações)
+## ⚡ O que Você Quer Fazer Agora? (Atalhos Rápidos)
 
-1. **[01 - Hardware e Diagnóstico](docs/01-hardware-e-diagnostico.md)**
-   * Identificação real da placa, SoC Allwinner H313, descoberta do padrão DDR3 (`v5.1`) e limitações da Boot ROM de fábrica.
-2. **[02 - Instalação do Armbian e Primeiro Boot](docs/02-instalacao-armbian-sd.md)**
-   * Seleção da imagem comunitária compatível (`X96q-v5-1`), gravação no cartão MicroSD de 2 GB via Rufus e criação do acesso `root`.
-3. **[03 - Rede Ethernet e Acesso Remoto (SSH)](docs/03-rede-e-acesso-ssh.md)**
-   * Conexão cabeada, obtenção de IP via DHCP, validação de chave ED25519 e comandos de acesso via Windows PowerShell.
-4. **[04 - Armazenamento e Boot Híbrido (SD + HD 1 TB)](docs/04-armazenamento-e-boot-hibrido.md)**
-   * Diagnóstico do `lsblk`, reparticionamento do HD de 1 TB (`sda`), migração da raiz (`/`) via `armbian-install` e reparo inicial `fsck`.
-5. **[05 - Pós-Instalação, Otimização e Serviços](docs/05-pos-instalacao-e-otimizacao.md)**
-   * Liberação de +37 GB extras no `ext4` (`tune2fs`), criação de Swap de 2 GB de segurança e atualização do sistema.
-6. **[06 - Arquitetura Home Lab ("Mini-VPS", Smart Home, Git, DB e Jogos)](docs/06-arquitetura-homelab-e-servicos.md)**
-   * Painel de Controle Geral (**CasaOS**), servidores de Bancos de Dados, Git próprio (**Gitea**), Automação Residencial (**Home Assistant**), Servidores de Jogos e estratégia para 2 roteadores.
-7. **[07 - Deploy Visual "Estilo Vercel / Firebase" e Multi-Projetos 24/7](docs/07-deploy-visual-estilo-vercel.md)**
-   * Como manter 10, 20 ou 50 projetos online ao mesmo tempo em 1 GB de RAM combinando **Portainer GitOps**, **PocketBase** e **Node-RED**.
+| Quero fazer... | Qual App usar? | Guia Passo a Passo |
+| :--- | :--- | :--- |
+| **Associar um repositório novo do GitHub** (Deploy Automático) | **Portainer** (`Stacks` ➡️ `Repository`) | [👉 Abrir Manual do Portainer](docs/08-manual-portainer-deploy-github.md) |
+| **Criar tabelas no Banco de Dados, Login ou subir um Site HTML/JS** | **PocketBase** (`:8090/_/`) | [👉 Abrir Manual do PocketBase](docs/09-manual-pocketbase-banco-e-api.md) |
+| **Criar uma API rápida, Bot (Telegram/Discord) ou Automação** | **Node-RED** (`:1880`) | [👉 Abrir Manual do Node-RED](docs/10-manual-casaos-e-nodered.md#-parte-2-como-usar-o-node-red-backends-bots-e-automação-sem-código-pesado) |
+| **Ligar/Desligar apps (RAM) ou abrir o HD de 1 TB no Windows** | **CasaOS** (`Painel Principal`) | [👉 Abrir Manual do CasaOS](docs/10-manual-casaos-e-nodered.md#-parte-1-como-usar-o-casaos-no-dia-a-dia-httpip_da_tv_box) |
+| **Deixar 10, 20 ou 30 projetinhos ON ao mesmo tempo** | **Arquitetura Multi-Projetos** | [👉 Ver Regras de Ouro de RAM](docs/07-deploy-visual-estilo-vercel.md) |
 
 ---
 
-## 📖 Manuais Práticos de Uso Diário (Passo a Passo Simples)
+## 🛠️ Resumo Rápido de Uso Diário
 
-8. **[08 - Manual do Portainer: Como Associar um Repositório Novo do GitHub](docs/08-manual-portainer-deploy-github.md)**
-   * Modelos prontos de `docker-compose.yml` (copiar e colar) para subir sites estáticos/React ou servidores Node.js/Multiplayer com auto-deploy a cada 60 segundos.
-9. **[09 - Manual do PocketBase: Banco de Dados, Permissões, Login e Código](docs/09-manual-pocketbase-banco-e-api.md)**
-   * Como criar tabelas (`Collections`), destravar as permissões (`API Rules`) e código HTML/JS pronto para ler, salvar dados e fazer login de usuários.
-10. **[10 - Manual do CasaOS (Arquivos/NAS/RAM) & Node-RED (APIs e Bots)](docs/10-manual-casaos-e-nodered.md)**
-    * Como compartilhar o HD de 1 TB no Windows Explorer (NAS), controlar a memória RAM e criar APIs/Bots arrastando bloquinhos no Node-RED.
+### 1. 🐳 Portainer — Subir um Projeto Novo do GitHub
+1. Coloque um arquivo `docker-compose.yml` no seu repositório do GitHub (copie o modelo pronto no [Manual do Portainer](docs/08-manual-portainer-deploy-github.md)).
+2. No Portainer, vá em **`Stacks`** ➡️ **`+ Add stack`** ➡️ selecione **`Repository`**.
+3. Cole a URL do GitHub, mude a branch para **`refs/heads/main`**, ative **`GitOps updates`** e clique em **`Deploy the stack`**.
+
+### 2. ⚡ PocketBase — Criar Banco de Dados para um Projeto Novo
+1. Acesse `http://<IP_DA_TV_BOX>:8090/_/` e clique em **`+ New collection`**.
+2. Dê o nome com o prefixo do seu projeto (ex.: `jogo_ranking`, `loja_itens`) e adicione as colunas (`+ New field`).
+3. **Importante:** Vá na aba **`API Rules`** da tabela e destrave os cadeados (`Unlock`) das ações que seu site precisa acessar (deixe vazio `""` para acesso público ou `@request.auth.id != ""` para usuários logados).
+4. Clique em **`</> API Preview`** no canto superior direito para copiar o código JavaScript pronto pro seu site!
+   *(Veja exemplos completos no [Manual do PocketBase](docs/09-manual-pocketbase-banco-e-api.md)).*
+
+### 3. 🧩 Node-RED — Criar Backends, Rotinas e Bots Visuais
+1. Abra o **Node-RED** pelo CasaOS e crie uma **nova aba (`+`)** para o seu projeto.
+2. Arraste um bloco de entrada (`http in` ou `inject`), ligue em um bloco de lógica (`function` ou `http request`) e em um bloco de saída (`http response` ou `debug`).
+3. Clique no botão vermelho **`Deploy`** no topo direito para colocar no ar na hora!
+   *(Veja o passo a passo no [Manual do CasaOS & Node-RED](docs/10-manual-casaos-e-nodered.md)).*
+
+### 4. 🏠 CasaOS — Controle Geral, Arquivos e Pasta na Rede (NAS)
+* **Pausar/Iniciar Projeto:** Passe o mouse no ícone do app ➡️ **3 pontinhos (`⋮`)** ➡️ **Desligar / Iniciar**.
+* **Subir Site Sem GitHub (Arrastar e Soltar):** Abra o app **`Files`** ➡️ `AppData` ➡️ `pocketbase` ➡️ `pb_public` ➡️ crie uma pasta `meu-site` e jogue seu `index.html` lá dentro. Ele abre na hora em `http://<IP_DA_TV_BOX>:8090/meu-site/`!
 
 ---
 
-## 🗺️ Status das Etapas
+<details>
+<summary><strong>🔧 Arquivo Técnico: Como a TV Box foi Transformada em Servidor (Clique para expandir)</strong></summary>
 
-- [x] **Fase 1:** Identificação de Hardware e Revisão de Placa (`v5.1` DDR3)
-- [x] **Fase 2:** Boot do Armbian Minimal via MicroSD de 2 GB
-- [x] **Fase 3:** Conexão de Rede Ethernet e Acesso SSH pelo PC
-- [x] **Fase 4:** Migração Híbrida Concluída (`/` no HD Seagate de 1 TB + `/boot` no MicroSD de 2 GB)
-- [x] **Fase 5:** Otimização pós-instalação concluída (`904 GB` livres, `2.5 GiB` Swap, pacotes atualizados)
-- [x] **Fase 6 (Ativa):** Painel **CasaOS + Docker + Portainer + PocketBase + Node-RED** instalados — Configurando serviços (Git, DB, Automação, Jogos)
+<br>
+
+Toda a documentação técnica de baixo nível (caso algum dia você precise regravar o sistema, consultar como foi feito o Boot Híbrido no HD de 1 TB ou revisar as otimizações de memória) está preservada abaixo:
+
+### Especificações da Máquina
+* **Placa / SoC:** TV Box `R001` (`X96Q v5.1`) — Allwinner H313 Quad-Core ARM64
+* **Memória:** 1 GB DDR3 + `2.5 GiB` Swap (`489M` ZRAM + `2G` Swapfile no HD)
+* **Armazenamento Híbrido:** Boot (`/boot`) em MicroSD de 2 GB + Sistema (`/`) em HD Externo USB 1 TB Seagate (`904 GB` livres)
+* **Sistema Base:** Armbian Bookworm Minimal (Kernel `6.12.64`)
+
+### Capítulos do Histórico de Instalação
+1. [01 - Hardware e Diagnóstico da Placa (DDR3 v5.1)](docs/01-hardware-e-diagnostico.md)
+2. [02 - Gravação do Armbian no Cartão SD de 2 GB](docs/02-instalacao-armbian-sd.md)
+3. [03 - Rede Ethernet e Acesso SSH](docs/03-rede-e-acesso-ssh.md)
+4. [04 - Particionamento e Boot Híbrido (SD + HD 1 TB)](docs/04-armazenamento-e-boot-hibrido.md)
+5. [05 - Pós-Instalação, Liberação de +37 GB (tune2fs) e Swap](docs/05-pos-instalacao-e-otimizacao.md)
+6. [06 - Catálogo de Expansão (Servidores de Jogos, Gitea, Smart Home)](docs/06-arquitetura-homelab-e-servicos.md)
+7. [Resumo Inicial do Projeto](resumo_do_projeto_r001_tv_box_para_servidor_linux.md)
+
+</details>
