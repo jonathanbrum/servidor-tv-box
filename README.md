@@ -78,6 +78,7 @@ Toda a documentação técnica de baixo nível (caso algum dia você precise reg
 4. [04 - Particionamento, Boot Híbrido e Blindagem do HD em 300 GB (Short-Stroking + Correção UAS)](docs/04-armazenamento-e-boot-hibrido.md)
 5. [05 - Pós-Instalação, Swap, Energia (Ligar/Desligar) e Guia de Clonagem Futura](docs/05-pos-instalacao-e-otimizacao.md)
 6. [06 - Catálogo de Expansão (Servidores de Jogos, Gitea, Smart Home)](docs/06-arquitetura-homelab-e-servicos.md)
-7. [Resumo Inicial do Projeto](resumo_do_projeto_r001_tv_box_para_servidor_linux.md)
+7. [16 - Projeto Kiosk Holyrics (Monitor de Retorno / Igreja)](docs/16-projeto-kiosk-holyrics-monitor-igreja.md)
+8. [Resumo Inicial do Projeto](resumo_do_projeto_r001_tv_box_para_servidor_linux.md)
 
 </details>

@@ -14,7 +14,7 @@ Você pode abrir o painel de calibragem e ações de duas formas:
 
 ---
 
-## 🎮 2. Controle Virtual Interativo (Gêmeo Digital)
+## 🎮 2. Controle Virtual Interativo & Mapeamento Inteligente
 
 À esquerda da tela existe um controle simulado reproduzindo fielmente o layout do controle físico:
 
@@ -24,7 +24,19 @@ Você pode abrir o painel de calibragem e ações de duas formas:
 - **Navegação & D-pad:** `Home` 🏠, `Back` ↩️, setas (`▲`, `▼`, `◀`, `▶`), `OK`, `Menu` ☰ e `Mouse` 🖱️.
 - **Teclado Numérico 3x4:** `1` a `9`, `Mute` 🔇, `0` e `Delete` ⌫.
 
-> Qualquer clique no controle virtual envia o comando ao servidor exatamente como o controle físico, piscando o LED virtual e o LED físico frontal da TV Box!
+### ✨ Indicadores Visuais de Pareamento (Pontos Verdes):
+- Todos os botões do controle virtual que já possuem mapeamento salvo recebem automaticamente um **ponto verde luminoso** no canto superior direito e borda realçada.
+- Você bate o olho no simulador e sabe exatamente quais teclas já foram configuradas e quais faltam!
+
+### 🎯 Como Mapear Teclas Sem Atrito (Dois Fluxos Suportados):
+1. **Fluxo A — Clicar no Controle Virtual primeiro:**
+   - Clique no botão desejado no simulador (ex: `1`). Ele ganha destaque ciano e o campo "Nome do Botão" é preenchido automaticamente como `"1"`.
+   - Aponte o controle físico para a TV Box e aperte a tecla `1`. O código hex (ex: `0x101`) é capturado instantaneamente no campo Scancode **sem apagar nem sobrescrever o nome**.
+   - Aperte **Enter** ou clique em **"💾 Salvar Mapeamento"**. O botão ganha o ponto verde na hora!
+2. **Fluxo B — Apertar o Controle Físico primeiro:**
+   - Aponte o controle para a TV Box e aperte qualquer botão. O código hex é preenchido no Scancode.
+   - Em seguida, clique no botão correspondente no simulador (ex: `Menu`). O sistema associa o código capturado à tecla selecionada sem apagar o Scancode!
+   - Aperte **Enter** ou clique em **"💾 Salvar Mapeamento"**.
 
 ---
 
