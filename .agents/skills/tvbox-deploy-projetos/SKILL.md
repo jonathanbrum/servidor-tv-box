@@ -16,7 +16,7 @@ Antes de criar um container Docker pesado, classifique o projeto em um dos 3 pad
 
 | Padrão | Tipo de Projeto | Onde Hospedar | Custo Adicional de RAM |
 | :--- | :--- | :--- | :--- |
-| **Padrão 1 (Motor Único)** | Site estático, SPA (React/Vite/Vue compilado), Jogo HTML5/JS, PWA com Banco de Dados, Login e Upload de Arquivos | **PocketBase existente** (`/DATA/AppData/pocketbase/pb_public/<projeto>` + Collections com prefixo) | **0 MB** |
+| **Padrão 1 (Motor Único)** | Site estático, SPA (React/Vite/Vue compilado), Jogo HTML5/JS, PWA com Banco de Dados, Login, Upload ou **Sinalização Realtime em RAM via `pb_hooks`** | **PocketBase existente** (`/DATA/AppData/pocketbase/pb_public/<projeto>` + `/pb_hooks/<projeto>.pb.js` ou Collections) | **0 MB** |
 | **Padrão 2 (Fluxo Visual)** | Backend de API REST simples, Webhook, Bot de Telegram/Discord, Cronjob/Scraper periódico ou Automação Smart Home | **Node-RED existente** (`:1880`, criando 1 nova aba para o projeto) | **~0.5 MB** |
 | **Padrão 3 (Container Dedicado)** | Servidor persistente em tempo real (Jogo Multiplayer WebSocket/Socket.io, servidor Python/Go específico) | **Portainer GitOps** (Container `alpine` dedicado em porta própria `:3001`, `:3002`, etc.) | **~25 a 50 MB** |
 

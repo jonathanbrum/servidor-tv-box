@@ -12,6 +12,7 @@ Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **
 | **Criar tabelas no Banco de Dados, Login ou subir um Site HTML/JS** | **PocketBase** (`:8090/_/`) | [👉 Abrir Manual do PocketBase](docs/09-manual-pocketbase-banco-e-api.md) |
 | **Criar uma API rápida, Bot (Telegram/Discord) ou Automação** | **Node-RED** (`:1880`) | [👉 Abrir Manual do Node-RED](docs/10-manual-casaos-e-nodered.md#-parte-2-como-usar-o-node-red-backends-bots-e-automação-sem-código-pesado) |
 | **Mandar link público e fixo para amigos (100% grátis)** | **Tailscale Funnel** (`.ts.net`) | [👉 Abrir Manual do Funnel](docs/12-manual-tailscale-funnel.md) |
+| **Compartilhar tela e áudio com amigos (60 FPS / Zero Latência)** | **TelaP2P WebRTC** (`:8443/tela/`) | [👉 Abrir Manual do TelaP2P](docs/13-servidor-compartilhamento-tela-webrtc.md) |
 | **Acessar meus sites com Domínio Próprio (sem abrir portas)** | **Cloudflare Tunnel** (`Zero Trust`) | [👉 Abrir Manual do Cloudflare](docs/11-manual-cloudflare-tunnel.md) |
 | **Ligar/Desligar apps (RAM) ou abrir o HD de 1 TB no Windows** | **CasaOS** (`Painel Principal`) | [👉 Abrir Manual do CasaOS](docs/10-manual-casaos-e-nodered.md#-parte-1-como-usar-o-casaos-no-dia-a-dia-httpip_da_tv_box) |
 | **Deixar 10, 20 ou 30 projetinhos ON ao mesmo tempo** | **Arquitetura Multi-Projetos** | [👉 Ver Regras de Ouro de RAM](docs/07-deploy-visual-estilo-vercel.md) |

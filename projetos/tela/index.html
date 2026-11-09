@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TelaP2P — Compartilhamento de Tela Zero Latência</title>
+  <style>
+    :root {
+      --bg-base: #0b0e14;
+      --bg-panel: #131822;
+      --bg-card: #1b2230;
+      --bg-hover: #252f42;
+      --border: #2a3447;
+      --text: #eef2f8;
+      --text-muted: #8b98b1;
+      --accent: #5865f2;
+      --accent-hover: #4752c4;
+      --success: #23a55a;
+      --danger: #f23f43;
+      --warning: #f0b232;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg-base);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* ================= TELA DE LOGIN ================= */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, #1b2336 0%, #0b0e14 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 410px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .login-logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #5865f2, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 16px rgba(88, 101, 242, 0.35);
+    }
+
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-base);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-full {
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+    }
+
+    .btn-success {
+      background: var(--success);
+    }
+    .btn-success:hover:not(:disabled) {
+      background: #1d8a4b;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: #d13034;
+    }
+
+    .btn-ghost {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--bg-hover);
+    }
+
+    .btn-warning {
+      background: #b45309;
+      border: 1px solid #f59e0b;
+    }
+
+    #login-error {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(242, 63, 67, 0.15);
+      border: 1px solid var(--danger);
+      color: #ff8b8e;
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ================= LAYOUT PRINCIPAL ================= */
+    #app-container {
+      display: flex;
+      flex: 1;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Barra Lateral Esquerda (Participantes + Controles de Qualidade/Áudio) */
+    .sidebar-left {
+      width: 300px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: margin-left 0.2s ease;
+    }
+
+    body.theater-mode .sidebar-left {
+      margin-left: -300px;
+    }
+
+    .brand-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .section-block {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Lista de Usuários / Transmissões */
+    .users-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 11px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .user-item.streaming {
+      border-color: rgba(242, 63, 67, 0.55);
+      background: linear-gradient(90deg, rgba(242, 63, 67, 0.12), var(--bg-card));
+      cursor: pointer;
+    }
+
+    .user-item.streaming:hover {
+      border-color: var(--danger);
+      background: rgba(242, 63, 67, 0.2);
+    }
+
+    .user-item.watching {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .user-meta {
+      min-width: 0;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .live-badge {
+      background: var(--danger);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      animation: pulseLive 2s infinite;
+    }
+
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.72; }
+    }
+
+    /* Painel de Configuração de Qualidade e Áudio */
+    .control-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-row label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .select-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-base);
+      color: var(--text);
+      font-size: 12.5px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-input:focus {
+      border-color: var(--accent);
+    }
+
+    .preset-pills {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .preset-pill {
+      padding: 6px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg-base);
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .preset-pill:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .preset-pill.active {
+      background: rgba(88, 101, 242, 0.2);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* Medidor de Áudio (VU Meter) */
+    .vu-meter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+    }
+
+    .vu-bar-bg {
+      flex: 1;
+      height: 7px;
+      border-radius: 4px;
+      background: #1e2636;
+      overflow: hidden;
+    }
+
+    .vu-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #23a55a, #f0b232, #f23f43);
+      transition: width 0.08s linear;
+    }
+
+    /* Palco Central (Vídeo) */
+    .stage-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #07090d;
+      position: relative;
+      min-width: 0;
+    }
+
+    .stage-topbar {
+      height: 52px;
+      padding: 0 16px;
+      background: rgba(19, 24, 34, 0.92);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .stage-stream-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 0;
+    }
+
+    .telemetry-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat-chip {
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-size: 11.5px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: var(--text-muted);
+    }
+
+    .stat-chip strong {
+      color: var(--text);
+    }
+
+    .stat-chip.good strong {
+      color: #4ade80;
+    }
+
+    .video-viewport {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #05070a;
+    }
+
+    #main-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
+
+    .empty-stage {
+      text-align: center;
+      max-width: 460px;
+      padding: 30px;
+      color: var(--text-muted);
+    }
+
+    .empty-stage-icon {
+      font-size: 48px;
+      margin-bottom: 14px;
+      opacity: 0.8;
+    }
+
+    .empty-stage h2 {
+      color: var(--text);
+      font-size: 19px;
+      margin-bottom: 8px;
+    }
+
+    .empty-stage p {
+      font-size: 13.5px;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    /* Barra Inferior do Player */
+    .stage-bottombar {
+      height: 58px;
+      padding: 0 18px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .volume-slider {
+      width: 110px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Chat Lateral Direito */
+    .sidebar-right {
+      width: 280px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: margin-right 0.2s ease;
+    }
+
+    body.theater-mode .sidebar-right {
+      margin-right: -280px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      user-select: text;
+    }
+
+    .chat-msg {
+      background: var(--bg-card);
+      padding: 8px 11px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .chat-msg-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+
+    .chat-msg-author {
+      font-weight: 700;
+      color: #8ea1ff;
+    }
+
+    .chat-msg-time {
+      color: var(--text-muted);
+    }
+
+    .chat-input-area {
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
+    }
+
+    .https-banner {
+      background: rgba(240, 178, 50, 0.14);
+      border: 1px solid var(--warning);
+      color: #fde68a;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    @media (max-width: 960px) {
+      .sidebar-right {
+        display: none;
+      }
+      .sidebar-left {
+        width: 260px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= TELA DE ENTRADA (NICK + SENHA) ================= -->
+  <div id="login-screen">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="login-logo-icon">🖥️</div>
+        <div>
+          <div class="login-title">TelaP2P • TV Box</div>
+          <div style="font-size:12px;color:#4ade80;font-weight:600;">⚡ WebRTC Direto • Latência Zero</div>
+        </div>
+      </div>
+      <p class="login-subtitle">
+        Compartilhamento de tela P2P com seletor de áudio isolado e controle de qualidade em tempo real (0% de peso na TV Box).
+      </p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="input-nick">Seu Apelido (Nick)</label>
+          <input type="text" id="input-nick" class="form-input" placeholder="Ex: Jonathan" maxlength="24" required autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label for="input-pass">Senha da Sala</label>
+          <input type="password" id="input-pass" class="form-input" placeholder="Digite a senha da sala" required />
+        </div>
+
+        <button type="submit" id="btn-join" class="btn btn-full">
+          🚀 Entrar na Sala
+        </button>
+        <div id="login-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= SALA PRINCIPAL ================= -->
+  <div id="app-container">
+
+    <!-- COLUNA ESQUERDA: CONTROLES DE TRANSMISSÃO + LISTA DE AMIGOS -->
+    <aside class="sidebar-left">
+      <div class="brand-header">
+        <div class="brand-title">
+          <span class="status-dot" id="conn-dot"></span>
+          <span>Sala TelaP2P</span>
+        </div>
+        <button id="btn-logout" class="btn btn-ghost" style="padding:5px 9px;font-size:11.5px;" title="Sair da sala">
+          Sair
+        </button>
+      </div>
+
+      <!-- BLOCO DE TRANSMISSÃO & QUALIDADE -->
+      <div class="section-block">
+        <div class="section-title">
+          <span>🎛️ Qualidade & Áudio da Sua Live</span>
+          <span id="live-indicator-self" style="color:#4ade80;display:none;">● TRANSMITINDO</span>
+        </div>
+
+        <div id="https-warning" class="https-banner">
+          ⚠️ Para <strong>transmitir</strong> sua tela, o navegador exige que você abra pelo link <strong>HTTPS</strong> do Tailscale Funnel (porta <code>:8443/tela/</code>). Assistir funciona normalmente aqui!
+          <div id="https-link-wrap" style="margin-top:6px;display:none;">
+            <a id="https-link-btn" href="#" class="btn btn-warning" style="padding:5px 10px;font-size:11px;text-decoration:none;width:100%;">
+              🔒 Abrir Link HTTPS Seguro
+            </a>
+          </div>
+        </div>
+
+        <!-- Presets Rápidos -->
+        <div class="preset-pills">
+          <button type="button" class="preset-pill" data-preset="eco">🪶 Leve (480p)</button>
+          <button type="button" class="preset-pill active" data-preset="balanced">⚖️ 720p 30fps</button>
+          <button type="button" class="preset-pill" data-preset="gamer">🎮 720p 60fps</button>
+          <button type="button" class="preset-pill" data-preset="ultra">🔥 1080p 60fps</button>
+        </div>
+
+        <div class="control-grid" style="margin-top:8px;">
+          <div class="control-row">
+            <label>
+              <span>🔊 Qual Áudio Enviar? (Filtro)</span>
+            </label>
+            <select id="select-audio-mode" class="select-input" title="Escolha se quer isolar apenas o som de uma aba, enviar som do sistema ou mutar tudo">
+              <option value="tab_only" selected>🎯 Só Áudio de Aba (Não vaza Windows)</option>
+              <option value="system_all">🔊 Áudio Completo (Jogo / Sistema Hi-Fi)</option>
+              <option value="none">🔇 Sem Áudio (100% Mudo)</option>
+            </select>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="control-row">
+              <label><span>📐 Resolução</span></label>
+              <select id="select-res" class="select-input">
+                <option value="480">480p (Econômico)</option>
+                <option value="720" selected>720p (HD)</option>
+                <option value="1080">1080p (Full HD)</option>
+                <option value="1440">Nativo / 2K</option>
+              </select>
+            </div>
+
+            <div class="control-row">
+              <label><span>🎞️ Taxa de Quadros</span></label>
+              <select id="select-fps" class="select-input">
+                <option value="15">15 FPS (Texto)</option>
+                <option value="24">24 FPS (Filme)</option>
+                <option value="30" selected>30 FPS (Padrão)</option>
+                <option value="60">60 FPS (Jogos)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <label>
+              <span>🚀 Limite de Bitrate (Rede/CPU)</span>
+              <span id="bitrate-label">2.5 Mbps</span>
+            </label>
+            <select id="select-bitrate" class="select-input">
+              <option value="900000">0.9 Mbps (Ultra Econômico)</option>
+              <option value="1500000">1.5 Mbps (Leve)</option>
+              <option value="2500000" selected>2.5 Mbps (Ideal 720p)</option>
+              <option value="4500000">4.5 Mbps (Jogos 60 FPS)</option>
+              <option value="7000000">7.0 Mbps (Ultra 1080p60)</option>
+              <option value="10000000">10.0 Mbps (Qualidade Bruta)</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <label><span>🎯 Otimização de Imagem</span></label>
+            <select id="select-hint" class="select-input">
+              <option value="motion" selected>⚡ Zero Atraso / Movimento (Jogos e Vídeos)</option>
+              <option value="detail">📄 Nitidez de Texto (Código e Leitura)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botões de Iniciar / Parar / Mutar Áudio da Live -->
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+          <button id="btn-share" class="btn btn-success btn-full">
+            🖥️ Compartilhar Minha Tela
+          </button>
+
+          <div id="live-self-controls" style="display:none;flex-direction:column;gap:6px;">
+            <div style="display:flex;gap:6px;">
+              <button id="btn-mute-self-audio" class="btn btn-ghost" style="flex:1;padding:9px;font-size:12.5px;">
+                🔊 Áudio Live: ON
+              </button>
+              <button id="btn-switch-source" class="btn btn-ghost" style="padding:9px 11px;font-size:12.5px;" title="Trocar janela ou aba compartilhada">
+                🔄 Trocar Tela
+              </button>
+            </div>
+
+            <div class="vu-meter-wrap" title="Nível do áudio que sua tela está enviando agora">
+              <span style="font-size:11px;color:var(--text-muted);width:62px;" id="vu-status-text">Áudio:</span>
+              <div class="vu-bar-bg">
+                <div class="vu-bar-fill" id="vu-bar"></div>
+              </div>
+            </div>
+
+            <button id="btn-stop-share" class="btn btn-danger btn-full" style="padding:9px;">
+              ⏹️ Encerrar Transmissão
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA DE PARTICIPANTES E TRANSMISSÕES -->
+      <div class="section-title" style="padding:12px 16px 0 16px;margin-bottom:4px;">
+        <span>👥 Na Sala (<span id="user-count">0</span>)</span>
+        <span style="font-size:10px;color:var(--text-muted);">Clique em 🔴 para assistir</span>
+      </div>
+
+      <div class="users-list" id="users-list"></div>
+    </aside>
+
+    <!-- PALCO CENTRAL DE VÍDEO -->
+    <main class="stage-center">
+      <header class="stage-topbar">
+        <div class="stage-stream-title">
+          <button id="btn-toggle-theater" class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" title="Modo Teatro (Esconder painéis laterais)">
+            ↔️ Modo Teatro
+          </button>
+          <span id="watching-title">Nenhuma transmissão selecionada</span>
+        </div>
+
+        <div class="telemetry-bar" id="telemetry-bar" style="display:none;">
+          <div class="stat-chip good">Ping: <strong id="stat-ping">-- ms</strong></div>
+          <div class="stat-chip">FPS: <strong id="stat-fps">--</strong></div>
+          <div class="stat-chip">Res: <strong id="stat-res">--</strong></div>
+          <div class="stat-chip">Bitrate: <strong id="stat-bitrate">-- Mbps</strong></div>
+          <button id="btn-sync-zero" class="btn btn-ghost" style="padding:4px 9px;font-size:11.5px;" title="Pular para o último milissegundo ao vivo e zerar qualquer buffer">
+            ⚡ Zerar Delay
+          </button>
+        </div>
+      </header>
+
+      <div class="video-viewport" id="video-viewport">
+        <video id="main-video" autoplay playsinline></video>
+
+        <div class="empty-stage" id="empty-stage">
+          <div class="empty-stage-icon">📡</div>
+          <h2>Pronto para Compartilhar ou Assistir</h2>
+          <p>
+            Clique em <strong>"Compartilhar Minha Tela"</strong> à esquerda ou clique no nome de um amigo que esteja com o selo <span class="live-badge" style="animation:none;">🔴 AO VIVO</span> para assistir sem latência.
+          </p>
+          <div style="font-size:12px;color:#8b98b1;background:rgba(255,255,255,0.03);padding:12px;border-radius:10px;border:1px solid var(--border);text-align:left;">
+            💡 <strong>Dica para não vazar áudios indesejados:</strong><br/>
+            • Escolha <strong>"🎯 Só Áudio de Aba"</strong> e selecione a aba do navegador (ex: YouTube/Filme). O som do seu Windows/WhatsApp ficará 100% isolado!<br/>
+            • Ou use o botão <strong>"🔊 Áudio Live: ON/OFF"</strong> a qualquer momento para mutar só o som da sua tela sem fechar o vídeo.
+          </div>
+        </div>
+      </div>
+
+      <footer class="stage-bottombar">
+        <div class="volume-control">
+          <button id="btn-mute-watch" class="btn btn-ghost" style="padding:6px 10px;font-size:13px;">🔊</button>
+          <input type="range" id="slider-volume" class="volume-slider" min="0" max="200" value="100" title="Volume da transmissão (até 200% com Boost)" />
+          <span id="label-volume" style="font-size:12px;color:var(--text-muted);min-width:42px;">100%</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="btn-stop-watching" class="btn btn-ghost" style="display:none;padding:7px 12px;font-size:12.5px;">
+            👁️ Parar de Assistir
+          </button>
+          <button id="btn-pip" class="btn btn-ghost" style="padding:7px 12px;font-size:12.5px;" title="Janela Flutuante (Picture-in-Picture)">
+            🖼️ PiP
+          </button>
+          <button id="btn-fullscreen" class="btn btn-ghost" style="padding:7px 12px;font-size:12.5px;">
+            ⛶ Tela Cheia
+          </button>
+        </div>
+      </footer>
+    </main>
+
+    <!-- COLUNA DIREITA: CHAT RÁPIDO -->
+    <aside class="sidebar-right">
+      <div class="brand-header">
+        <div class="brand-title">💬 Chat da Sala</div>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <form class="chat-input-area" id="chat-form">
+        <input type="text" id="chat-input" class="form-input" placeholder="Enviar mensagem..." maxlength="400" autocomplete="off" style="padding:9px 11px;font-size:13px;" />
+        <button type="submit" class="btn" style="padding:9px 13px;">➤</button>
+      </form>
+    </aside>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURAÇÃO WEBRTC P2P ULTRA-LOW LATENCY
+    // =========================================================================
+    const RTC_CONFIG = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.cloudflare.com:3478" }
+      ],
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require"
+    };
+
+    // Estado Global
+    let myClientId = null;
+    let myNick = localStorage.getItem("tela_nick") || "";
+    let roomPassword = localStorage.getItem("tela_pass") || "";
+    let eventSource = null;
+    let heartbeatTimer = null;
+    let statsTimer = null;
+
+    let roomUsers = [];
+    let localStream = null;
+    let isSelfAudioMuted = false;
+
+    // Mapa de conexões enviando minha tela para espectadores: viewerId -> { pc, iceQueue }
+    const senderConnections = new Map();
+
+    // Conexão assistindo a tela de alguém: { streamerId, streamerNick, pc, iceQueue }
+    let activeViewerState = null;
+
+    // Web Audio API para Boost de Volume (até 200%) e VU Meter
+    let watchAudioCtx = null;
+    let watchGainNode = null;
+    let watchAudioSource = null;
+    let selfAudioCtx = null;
+    let selfAnalyser = null;
+    let vuAnimFrame = null;
+
+    // Elementos DOM
+    const loginScreen = document.getElementById("login-screen");
+    const loginForm = document.getElementById("login-form");
+    const inputNick = document.getElementById("input-nick");
+    const inputPass = document.getElementById("input-pass");
+    const loginError = document.getElementById("login-error");
+    const btnJoin = document.getElementById("btn-join");
+
+    const usersListEl = document.getElementById("users-list");
+    const userCountEl = document.getElementById("user-count");
+    const mainVideo = document.getElementById("main-video");
+    const emptyStage = document.getElementById("empty-stage");
+    const watchingTitle = document.getElementById("watching-title");
+    const telemetryBar = document.getElementById("telemetry-bar");
+
+    const selectAudioMode = document.getElementById("select-audio-mode");
+    const selectRes = document.getElementById("select-res");
+    const selectFps = document.getElementById("select-fps");
+    const selectBitrate = document.getElementById("select-bitrate");
+    const selectHint = document.getElementById("select-hint");
+    const bitrateLabel = document.getElementById("bitrate-label");
+
+    const btnShare = document.getElementById("btn-share");
+    const liveSelfControls = document.getElementById("live-self-controls");
+    const btnMuteSelfAudio = document.getElementById("btn-mute-self-audio");
+    const btnSwitchSource = document.getElementById("btn-switch-source");
+    const btnStopShare = document.getElementById("btn-stop-share");
+    const liveIndicatorSelf = document.getElementById("live-indicator-self");
+
+    if (myNick) inputNick.value = myNick;
+    if (roomPassword) inputPass.value = roomPassword;
+
+    // Verifica contexto seguro (HTTPS) para captura de tela
+    if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      document.getElementById("https-warning").style.display = "block";
+    }
+
+    // =========================================================================
+    // CHAMADAS DE API PARA O POCKETBASE HOOK (/api/tela/action)
+    // =========================================================================
+    async function apiAction(action, payload = {}) {
+      const res = await fetch("/api/tela/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          clientId: myClientId,
+          nick: myNick,
+          password: roomPassword,
+          ...payload
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Erro na comunicação com a sala.");
+      }
+      return data;
+    }
+
+    // =========================================================================
+    // CONEXÃO REALTIME SSE E ENTRADA NA SALA
+    // =========================================================================
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loginError.style.display = "none";
+      myNick = inputNick.value.trim() || "Amigo";
+      roomPassword = inputPass.value.trim();
+
+      btnJoin.disabled = true;
+      btnJoin.textContent = "⏳ Conectando...";
+
+      try {
+        await connectRealtimeAndJoin();
+        localStorage.setItem("tela_nick", myNick);
+        localStorage.setItem("tela_pass", roomPassword);
+        loginScreen.style.display = "none";
+      } catch (err) {
+        loginError.textContent = err.message || "Falha ao entrar na sala.";
+        loginError.style.display = "block";
+      } finally {
+        btnJoin.disabled = false;
+        btnJoin.textContent = "🚀 Entrar na Sala";
+      }
+    });
+
+    function connectRealtimeAndJoin() {
+      return new Promise((resolve, reject) => {
+        if (eventSource) {
+          eventSource.close();
+        }
+
+        const es = new EventSource("/api/realtime");
+        eventSource = es;
+        let joined = false;
+
+        const timeout = setTimeout(() => {
+          if (!joined) {
+            es.close();
+            reject(new Error("Tempo esgotado ao conectar no servidor."));
+          }
+        }, 10000);
+
+        es.addEventListener("PB_CONNECT", async (ev) => {
+          try {
+            const info = JSON.parse(ev.data);
+            myClientId = info.clientId;
+
+            // Mantém a conexão SSE ativa assinando o canal tela_room
+            await fetch("/api/realtime", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientId: myClientId,
+                subscriptions: ["tela_room"]
+              })
+            });
+
+            // Valida a senha e entra na sala
+            const joinData = await apiAction("join");
+            joined = true;
+            clearTimeout(timeout);
+
+            if (joinData.httpsUrl && (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia)) {
+              const btn = document.getElementById("https-link-btn");
+              const wrap = document.getElementById("https-link-wrap");
+              if (btn && wrap) {
+                btn.href = joinData.httpsUrl;
+                wrap.style.display = "block";
+              }
+            }
+
+            document.getElementById("conn-dot").style.background = "#23a55a";
+            renderUsers(joinData.users || []);
+            renderChatHistory(joinData.chat || []);
+            startHeartbeat();
+            resolve();
+          } catch (err) {
+            clearTimeout(timeout);
+            es.close();
+            reject(err);
+          }
+        });
+
+        es.addEventListener("tela_room", (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            handleRoomEvent(msg);
+          } catch (err) {
+            console.error("Erro ao processar evento da sala:", err);
+          }
+        });
+
+        es.onerror = () => {
+          document.getElementById("conn-dot").style.background = "#f0b232";
+        };
+      });
+    }
+
+    function startHeartbeat() {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(async () => {
+        if (!myClientId) return;
+        try {
+          const res = await apiAction("heartbeat");
+          if (res.users) renderUsers(res.users);
+        } catch (_) {}
+      }, 20000);
+    }
+
+    // =========================================================================
+    // EVENTOS DA SALA E SINALIZAÇÃO WEBRTC
+    // =========================================================================
+    function handleRoomEvent(msg) {
+      if (msg.type === "room_update") {
+        renderUsers(msg.users || []);
+
+        if (msg.event) {
+          // Se a pessoa que estamos assistindo encerrou a transmissão ou saiu
+          if (
+            (msg.event.kind === "stop_stream" || msg.event.kind === "leave") &&
+            activeViewerState &&
+            activeViewerState.streamerId === msg.event.clientId
+          ) {
+            stopWatching();
+          }
+
+          // Se um espectador saiu, fecha a conexão P2P dele
+          if (msg.event.kind === "leave" && senderConnections.has(msg.event.clientId)) {
+            closeSenderPeer(msg.event.clientId);
+          }
+
+          // Auto-assistir caso alguém comece a transmitir e nosso palco esteja vazio
+          if (
+            msg.event.kind === "start_stream" &&
+            msg.event.clientId !== myClientId &&
+            !activeViewerState
+          ) {
+            startWatching(msg.event.clientId, msg.event.nick);
+          }
+        }
+      } else if (msg.type === "webrtc_signal") {
+        handleWebRTCSignal(msg);
+      } else if (msg.type === "chat_message") {
+        appendChatMessage(msg.message);
+      }
+    }
+
+    // =========================================================================
+    // CAPTURA DE TELA COM SELETOR DE ÁUDIO E QUALIDADE DINÂMICA
+    // =========================================================================
+    function getCaptureConstraints() {
+      const height = parseInt(selectRes.value, 10) || 720;
+      const fps = parseInt(selectFps.value, 10) || 30;
+      const width = Math.round((height * 16) / 9);
+      const audioMode = selectAudioMode.value;
+
+      const videoConstraints = {
+        width: { ideal: width, max: width },
+        height: { ideal: height, max: height },
+        frameRate: { ideal: fps, max: fps },
+        cursor: "always"
+      };
+
+      if (audioMode === "none") {
+        return {
+          video: videoConstraints,
+          audio: false
+        };
+      }
+
+      // Opções avançadas de áudio sem filtro de voz (Hi-Fi Estéreo puro)
+      const audioConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 2,
+        sampleRate: 48000
+      };
+
+      const displayMediaOptions = {
+        video: videoConstraints,
+        audio: audioConstraints,
+        selfBrowserSurface: "exclude",
+        surfaceSwitching: "include"
+      };
+
+      if (audioMode === "tab_only") {
+        // Esconde/exclui o áudio geral do Windows para não vazar sons indesejados!
+        displayMediaOptions.systemAudio = "exclude";
+      } else {
+        displayMediaOptions.systemAudio = "include";
+        displayMediaOptions.windowAudio = "system";
+      }
+
+      return displayMediaOptions;
+    }
+
+    function getStreamInfoSummary() {
+      const res = selectRes.value + "p";
+      const fps = selectFps.value + " FPS";
+      const hasAudio = localStream && localStream.getAudioTracks().length > 0;
+      return {
+        label: `${res} • ${fps}`,
+        hasAudio: !!hasAudio,
+        audioMuted: isSelfAudioMuted
+      };
+    }
+
+    async function startScreenShare() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        alert("Para compartilhar a tela, abra o link com HTTPS seguro (botão amarelo à esquerda)!");
+        return;
+      }
+
+      try {
+        const options = getCaptureConstraints();
+        const stream = await navigator.mediaDevices.getDisplayMedia(options);
+
+        // Se já havia uma stream anterior, limpa
+        if (localStream) {
+          localStream.getTracks().forEach((t) => t.stop());
+        }
+
+        localStream = stream;
+        isSelfAudioMuted = false;
+        applyContentHint();
+        setupSelfVuMeter(stream);
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.onended = () => {
+            stopScreenShare();
+          };
+        }
+
+        // Atualiza UI
+        btnShare.style.display = "none";
+        liveSelfControls.style.display = "flex";
+        liveIndicatorSelf.style.display = "inline";
+        updateSelfAudioButtonUI();
+
+        // Se já existirem espectadores conectados (no caso de "Trocar Tela"), substitui as tracks
+        for (const [viewerId, conn] of senderConnections.entries()) {
+          await replaceTracksForPeer(viewerId, conn.pc);
+        }
+
+        // Avisa a sala que estamos ao vivo
+        await apiAction("start_stream", {
+          streamInfo: getStreamInfoSummary()
+        });
+
+        // Se não estamos assistindo ninguém, mostra o preview local no palco (mutado localmente para não dar eco)
+        if (!activeViewerState) {
+          showLocalPreview();
+        }
+      } catch (err) {
+        if (err.name !== "NotAllowedError") {
+          alert("Não foi possível capturar a tela: " + err.message);
+        }
+      }
+    }
+
+    function showLocalPreview() {
+      mainVideo.srcObject = localStream;
+      mainVideo.muted = true; // Sempre mudo para si mesmo para não duplicar o próprio som!
+      mainVideo.style.display = "block";
+      emptyStage.style.display = "none";
+      watchingTitle.innerHTML = `<span class="live-badge">🔴 SUA TELA</span> <span>Pré-visualização local (${getStreamInfoSummary().label})</span>`;
+      telemetryBar.style.display = "none";
+    }
+
+    async function stopScreenShare() {
+      if (localStream) {
+        localStream.getTracks().forEach((t) => t.stop());
+        localStream = null;
+      }
+      stopSelfVuMeter();
+
+      for (const [viewerId] of senderConnections.entries()) {
+        closeSenderPeer(viewerId);
+      }
+      senderConnections.clear();
+
+      btnShare.style.display = "inline-flex";
+      liveSelfControls.style.display = "none";
+      liveIndicatorSelf.style.display = "none";
+
+      if (!activeViewerState) {
+        mainVideo.srcObject = null;
+        mainVideo.style.display = "none";
+        emptyStage.style.display = "block";
+        watchingTitle.textContent = "Nenhuma transmissão selecionada";
+      }
+
+      try {
+        await apiAction("stop_stream");
+      } catch (_) {}
+    }
+
+    // Mutar / Desmutar apenas o ÁUDIO enviado na transmissão (sem parar o vídeo!)
+    btnMuteSelfAudio.addEventListener("click", async () => {
+      if (!localStream) return;
+      const audioTracks = localStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        alert("Você iniciou esta transmissão sem capturar áudio. Use '🔄 Trocar Tela' se quiser incluir áudio.");
+        return;
+      }
+      isSelfAudioMuted = !isSelfAudioMuted;
+      audioTracks.forEach((t) => {
+        t.enabled = !isSelfAudioMuted;
+      });
+      updateSelfAudioButtonUI();
+      try {
+        await apiAction("update_stream", {
+          streamInfo: getStreamInfoSummary()
+        });
+      } catch (_) {}
+    });
+
+    function updateSelfAudioButtonUI() {
+      if (!localStream || localStream.getAudioTracks().length === 0) {
+        btnMuteSelfAudio.textContent = "🔇 Sem Áudio Capturado";
+        btnMuteSelfAudio.className = "btn btn-ghost";
+        document.getElementById("vu-status-text").textContent = "Sem áudio";
+        return;
+      }
+      if (isSelfAudioMuted) {
+        btnMuteSelfAudio.textContent = "🔇 Áudio Live: MUTADO";
+        btnMuteSelfAudio.className = "btn btn-danger";
+        document.getElementById("vu-status-text").textContent = "Mutado";
+      } else {
+        btnMuteSelfAudio.textContent = "🔊 Áudio Live: ON";
+        btnMuteSelfAudio.className = "btn btn-success";
+        document.getElementById("vu-status-text").textContent = "Enviando:";
+      }
+    }
+
+    // Medidor Visual (VU Meter) do próprio áudio enviado
+    function setupSelfVuMeter(stream) {
+      stopSelfVuMeter();
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) return;
+
+      try {
+        selfAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = selfAudioCtx.createMediaStreamSource(new MediaStream([audioTracks[0]]));
+        selfAnalyser = selfAudioCtx.createAnalyser();
+        selfAnalyser.fftSize = 256;
+        src.connect(selfAnalyser);
+
+        const dataArray = new Uint8Array(selfAnalyser.frequencyBinCount);
+        const vuBar = document.getElementById("vu-bar");
+
+        const tick = () => {
+          if (!selfAnalyser) return;
+          if (isSelfAudioMuted) {
+            vuBar.style.width = "0%";
+          } else {
+            selfAnalyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const avg = sum / dataArray.length;
+            const pct = Math.min(100, Math.round((avg / 90) * 100));
+            vuBar.style.width = pct + "%";
+          }
+          vuAnimFrame = requestAnimationFrame(tick);
+        };
+        tick();
+      } catch (_) {}
+    }
+
+    function stopSelfVuMeter() {
+      if (vuAnimFrame) cancelAnimationFrame(vuAnimFrame);
+      vuAnimFrame = null;
+      if (selfAudioCtx) {
+        selfAudioCtx.close().catch(() => {});
+        selfAudioCtx = null;
+      }
+      selfAnalyser = null;
+      const vuBar = document.getElementById("vu-bar");
+      if (vuBar) vuBar.style.width = "0%";
+    }
+
+    // =========================================================================
+    // AJUSTE DINÂMICO DE QUALIDADE / FPS / BITRATE EM TEMPO REAL
+    // =========================================================================
+    function applyContentHint() {
+      if (!localStream) return;
+      const hint = selectHint.value; // "motion" ou "detail"
+      const vTrack = localStream.getVideoTracks()[0];
+      if (vTrack && "contentHint" in vTrack) {
+        vTrack.contentHint = hint;
+      }
+    }
+
+    async function applyLiveQualityChanges() {
+      const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
+      bitrateLabel.textContent = (bitrate / 1000000).toFixed(1) + " Mbps";
+
+      if (!localStream) return;
+
+      const height = parseInt(selectRes.value, 10) || 720;
+      const fps = parseInt(selectFps.value, 10) || 30;
+      const width = Math.round((height * 16) / 9);
+      const hint = selectHint.value;
+
+      const vTrack = localStream.getVideoTracks()[0];
+      if (vTrack) {
+        applyContentHint();
+        try {
+          await vTrack.applyConstraints({
+            width: { ideal: width, max: width },
+            height: { ideal: height, max: height },
+            frameRate: { ideal: fps, max: fps }
+          });
+        } catch (err) {
+          console.warn("applyConstraints aviso:", err);
+        }
+      }
+
+      // Atualiza todos os encoders WebRTC ativos na hora!
+      for (const [, conn] of senderConnections.entries()) {
+        await tuneSenderParameters(conn.pc, bitrate, fps, hint);
+      }
+
+      if (!activeViewerState && localStream) {
+        watchingTitle.innerHTML = `<span class="live-badge">🔴 SUA TELA</span> <span>Pré-visualização local (${getStreamInfoSummary().label})</span>`;
+      }
+
+      try {
+        await apiAction("update_stream", {
+          streamInfo: getStreamInfoSummary()
+        });
+      } catch (_) {}
+    }
+
+    async function tuneSenderParameters(pc, maxBitrate, maxFps, hint) {
+      const senders = pc.getSenders();
+      for (const sender of senders) {
+        if (!sender.track) continue;
+        if (sender.track.kind === "video") {
+          try {
+            const params = sender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+              params.encodings = [{}];
+            }
+            params.encodings[0].maxBitrate = maxBitrate;
+            params.encodings[0].maxFramerate = maxFps;
+            params.encodings[0].priority = "high";
+            params.encodings[0].networkPriority = "high";
+            params.degradationPreference =
+              hint === "detail" ? "maintain-resolution" : "maintain-framerate";
+            await sender.setParameters(params);
+          } catch (e) {
+            console.warn("Não foi possível ajustar parâmetros de vídeo:", e);
+          }
+        } else if (sender.track.kind === "audio") {
+          try {
+            const params = sender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+              params.encodings = [{}];
+            }
+            params.encodings[0].maxBitrate = 160000; // 160 kbps Hi-Fi Audio
+            params.encodings[0].priority = "high";
+            await sender.setParameters(params);
+          } catch (_) {}
+        }
+      }
+    }
+
+    // Presets de 1 clique
+    const PRESETS = {
+      eco: { res: "480", fps: "24", bitrate: "900000", hint: "motion" },
+      balanced: { res: "720", fps: "30", bitrate: "2500000", hint: "motion" },
+      gamer: { res: "720", fps: "60", bitrate: "4500000", hint: "motion" },
+      ultra: { res: "1080", fps: "60", bitrate: "7000000", hint: "motion" }
+    };
+
+    document.querySelectorAll(".preset-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".preset-pill").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const p = PRESETS[btn.dataset.preset];
+        if (p) {
+          selectRes.value = p.res;
+          selectFps.value = p.fps;
+          selectBitrate.value = p.bitrate;
+          selectHint.value = p.hint;
+          applyLiveQualityChanges();
+        }
+      });
+    });
+
+    [selectRes, selectFps, selectBitrate, selectHint].forEach((el) => {
+      el.addEventListener("change", () => {
+        document.querySelectorAll(".preset-pill").forEach((b) => b.classList.remove("active"));
+        applyLiveQualityChanges();
+      });
+    });
+
+    btnShare.addEventListener("click", startScreenShare);
+    btnSwitchSource.addEventListener("click", startScreenShare);
+    btnStopShare.addEventListener("click", stopScreenShare);
+
+    // =========================================================================
+    // MOTOR P2P: TRANSMISSOR (QUEM COMPARTILHA) <-> ESPECTADOR (QUEM ASSISTE)
+    // =========================================================================
+
+    // Otimiza SDP para áudio estéreo de alta fidelidade e baixa latência
+    function optimizeSdpForLowLatency(sdp) {
+      if (!sdp) return sdp;
+      return sdp.replace(
+        /a=fmtp:(\d+) minptime=10;useinbandfec=1/g,
+        "a=fmtp:$1 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=160000;cbr=1"
+      );
+    }
+
+    async function handleWebRTCSignal(msg) {
+      const { fromId, fromNick, signalType, signalData } = msg;
+
+      // 1. Espectador pediu para assistir nossa transmissão
+      if (signalType === "watch_request") {
+        if (!localStream) return;
+        await createSenderPeerAndOffer(fromId);
+      }
+
+      // 2. Recebemos uma Offer do transmissor que queremos assistir
+      else if (signalType === "offer") {
+        if (!activeViewerState || activeViewerState.streamerId !== fromId) return;
+        const pc = activeViewerState.pc;
+        await pc.setRemoteDescription(new RTCSessionDescription(signalData));
+        activeViewerState.remoteDescSet = true;
+
+        // Processa ICE candidates enfileirados
+        for (const cand of activeViewerState.iceQueue) {
+          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        }
+        activeViewerState.iceQueue = [];
+
+        const answer = await pc.createAnswer();
+        answer.sdp = optimizeSdpForLowLatency(answer.sdp);
+        await pc.setLocalDescription(answer);
+
+        await apiAction("webrtc_signal", {
+          targetId: fromId,
+          signalType: "answer",
+          signalData: pc.localDescription
+        });
+      }
+
+      // 3. Transmissor recebeu a Answer do espectador
+      else if (signalType === "answer") {
+        const conn = senderConnections.get(fromId);
+        if (!conn) return;
+        await conn.pc.setRemoteDescription(new RTCSessionDescription(signalData));
+        conn.remoteDescSet = true;
+
+        for (const cand of conn.iceQueue) {
+          await conn.pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        }
+        conn.iceQueue = [];
+
+        const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
+        const fps = parseInt(selectFps.value, 10) || 30;
+        await tuneSenderParameters(conn.pc, bitrate, fps, selectHint.value);
+      }
+
+      // 4. Candidato ICE (de ambos os lados)
+      else if (signalType === "ice" && signalData) {
+        if ( signalData.role === "from_streamer" ) {
+          // Somos o espectador
+          if (activeViewerState && activeViewerState.streamerId === fromId) {
+            if (activeViewerState.remoteDescSet) {
+              await activeViewerState.pc.addIceCandidate(new RTCIceCandidate(signalData.candidate)).catch(() => {});
+            } else {
+              activeViewerState.iceQueue.push(signalData.candidate);
+            }
+          }
+        } else {
+          // Somos o transmissor
+          const conn = senderConnections.get(fromId);
+          if (conn) {
+            if (conn.remoteDescSet) {
+              await conn.pc.addIceCandidate(new RTCIceCandidate(signalData.candidate)).catch(() => {});
+            } else {
+              conn.iceQueue.push(signalData.candidate);
+            }
+          }
+        }
+      }
+
+      // 5. Espectador parou de assistir
+      else if (signalType === "viewer_left") {
+        closeSenderPeer(fromId);
+      }
+    }
+
+    async function createSenderPeerAndOffer(viewerId) {
+      closeSenderPeer(viewerId);
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      const connObj = { pc, iceQueue: [], remoteDescSet: false };
+      senderConnections.set(viewerId, connObj);
+
+      localStream.getTracks().forEach((track) => {
+        pc.addTrack(track, localStream);
+      });
+
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) {
+          apiAction("webrtc_signal", {
+            targetId: viewerId,
+            signalType: "ice",
+            signalData: { role: "from_streamer", candidate: ev.candidate }
+          }).catch(() => {});
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+          closeSenderPeer(viewerId);
+        }
+      };
+
+      const offer = await pc.createOffer();
+      offer.sdp = optimizeSdpForLowLatency(offer.sdp);
+      await pc.setLocalDescription(offer);
+
+      const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
+      const fps = parseInt(selectFps.value, 10) || 30;
+      await tuneSenderParameters(pc, bitrate, fps, selectHint.value);
+
+      await apiAction("webrtc_signal", {
+        targetId: viewerId,
+        signalType: "offer",
+        signalData: pc.localDescription
+      });
+    }
+
+    async function replaceTracksForPeer(viewerId, pc) {
+      if (!localStream) return;
+      const vTrack = localStream.getVideoTracks()[0];
+      const aTrack = localStream.getAudioTracks()[0];
+
+      for (const sender of pc.getSenders()) {
+        if (sender.track && sender.track.kind === "video" && vTrack) {
+          await sender.replaceTrack(vTrack);
+        }
+        if (sender.track && sender.track.kind === "audio" && aTrack) {
+          await sender.replaceTrack(aTrack);
+        }
+      }
+      // Renegocia caso o usuário tenha adicionado ou removido trilha de áudio
+      await createSenderPeerAndOffer(viewerId);
+    }
+
+    function closeSenderPeer(viewerId) {
+      const conn = senderConnections.get(viewerId);
+      if (conn) {
+        try { conn.pc.close(); } catch (_) {}
+        senderConnections.delete(viewerId);
+      }
+    }
+
+    // =========================================================================
+    // ASSISTIR TRANSMISSÃO COM RECEIVER DE LATÊNCIA ZERO (playoutDelayHint = 0)
+    // =========================================================================
+    async function startWatching(streamerId, streamerNick) {
+      if (streamerId === myClientId) {
+        if (localStream) {
+          stopWatching();
+          showLocalPreview();
+        }
+        return;
+      }
+
+      stopWatching(false);
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      activeViewerState = {
+        streamerId,
+        streamerNick,
+        pc,
+        iceQueue: [],
+        remoteDescSet: false,
+        lastBytes: 0,
+        lastTimestamp: 0
+      };
+
+      watchingTitle.innerHTML = `<span class="live-badge">🔴 AO VIVO</span> <span>Conectando à tela de <strong>${escapeHtml(streamerNick)}</strong>...</span>`;
+      document.getElementById("btn-stop-watching").style.display = "inline-flex";
+      renderUsers(roomUsers);
+
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) {
+          apiAction("webrtc_signal", {
+            targetId: streamerId,
+            signalType: "ice",
+            signalData: { role: "from_viewer", candidate: ev.candidate }
+          }).catch(() => {});
+        }
+      };
+
+      pc.ontrack = (ev) => {
+        // FORÇA LATÊNCIA ZERO NO RECEPTOR WEBRTC DO NAVEGADOR!
+        if (ev.receiver) {
+          if ("playoutDelayHint" in ev.receiver) {
+            ev.receiver.playoutDelayHint = 0;
+          }
+          if ("jitterBufferTarget" in ev.receiver) {
+            ev.receiver.jitterBufferTarget = 0;
+          }
+        }
+
+        const stream = ev.streams[0];
+        if (stream && mainVideo.srcObject !== stream) {
+          mainVideo.srcObject = stream;
+          mainVideo.muted = false;
+          mainVideo.style.display = "block";
+          emptyStage.style.display = "none";
+          telemetryBar.style.display = "flex";
+          watchingTitle.innerHTML = `<span class="live-badge">🔴 AO VIVO</span> <span>Tela de <strong>${escapeHtml(streamerNick)}</strong></span>`;
+
+          setupWatchVolumeBoost(stream);
+          mainVideo.play().catch(() => {});
+          startTelemetryLoop();
+        }
+      };
+
+      await apiAction("webrtc_signal", {
+        targetId: streamerId,
+        signalType: "watch_request"
+      });
+    }
+
+    function stopWatching(notifyStreamer = true) {
+      if (statsTimer) {
+        clearInterval(statsTimer);
+        statsTimer = null;
+      }
+
+      if (activeViewerState) {
+        const oldStreamerId = activeViewerState.streamerId;
+        try { activeViewerState.pc.close(); } catch (_) {}
+        activeViewerState = null;
+
+        if (notifyStreamer) {
+          apiAction("webrtc_signal", {
+            targetId: oldStreamerId,
+            signalType: "viewer_left"
+          }).catch(() => {});
+        }
+      }
+
+      document.getElementById("btn-stop-watching").style.display = "none";
+      telemetryBar.style.display = "none";
+
+      if (localStream) {
+        showLocalPreview();
+      } else {
+        mainVideo.srcObject = null;
+        mainVideo.style.display = "none";
+        emptyStage.style.display = "block";
+        watchingTitle.textContent = "Nenhuma transmissão selecionada";
+      }
+
+      renderUsers(roomUsers);
+    }
+
+    document.getElementById("btn-stop-watching").addEventListener("click", () => stopWatching(true));
+
+    // Botão Zerar Delay (Sincroniza buffer instantaneamente)
+    document.getElementById("btn-sync-zero").addEventListener("click", () => {
+      if (!activeViewerState || !mainVideo.srcObject) return;
+      const receivers = activeViewerState.pc.getReceivers();
+      receivers.forEach((r) => {
+        if ("playoutDelayHint" in r) r.playoutDelayHint = 0;
+        if ("jitterBufferTarget" in r) r.jitterBufferTarget = 0;
+      });
+      if (mainVideo.buffered && mainVideo.buffered.length > 0) {
+        mainVideo.currentTime = mainVideo.buffered.end(mainVideo.buffered.length - 1);
+      }
+    });
+
+    // Telemetria em Tempo Real (Ping, FPS, Resolução e Bitrate)
+    function startTelemetryLoop() {
+      if (statsTimer) clearInterval(statsTimer);
+      statsTimer = setInterval(async () => {
+        if (!activeViewerState || !activeViewerState.pc) return;
+        try {
+          const stats = await activeViewerState.pc.getStats();
+          let rttMs = null;
+          let fps = null;
+          let width = null;
+          let height = null;
+          let bytesReceived = null;
+          let timestamp = null;
+
+          stats.forEach((report) => {
+            if (report.type === "candidate-pair" && report.state === "succeeded" && report.currentRoundTripTime !== undefined) {
+              rttMs = Math.round(report.currentRoundTripTime * 1000);
+            }
+            if (report.type === "inbound-rtp" && report.kind === "video") {
+              fps = report.framesPerSecond ? Math.round(report.framesPerSecond) : null;
+              width = report.frameWidth;
+              height = report.frameHeight;
+              bytesReceived = report.bytesReceived;
+              timestamp = report.timestamp;
+            }
+          });
+
+          document.getElementById("stat-ping").textContent = rttMs !== null ? `${rttMs} ms` : "< 5 ms";
+          document.getElementById("stat-fps").textContent = fps !== null ? `${fps}` : "--";
+          document.getElementById("stat-res").textContent =
+            width && height ? `${width}x${height}` : mainVideo.videoHeight ? `${mainVideo.videoWidth}x${mainVideo.videoHeight}` : "--";
+
+          if (bytesReceived !== null && timestamp !== null) {
+            if (activeViewerState.lastTimestamp > 0 && timestamp > activeViewerState.lastTimestamp) {
+              const bits = (bytesReceived - activeViewerState.lastBytes) * 8;
+              const secs = (timestamp - activeViewerState.lastTimestamp) / 1000;
+              const mbps = (bits / secs / 1000000).toFixed(2);
+              document.getElementById("stat-bitrate").textContent = `${mbps} Mbps`;
+            }
+            activeViewerState.lastBytes = bytesReceived;
+            activeViewerState.lastTimestamp = timestamp;
+          }
+        } catch (_) {}
+      }, 1000);
+    }
+
+    // =========================================================================
+    // CONTROLE DE VOLUME COM AMPLIFICADOR (0% A 200% BOOST)
+    // =========================================================================
+    const sliderVolume = document.getElementById("slider-volume");
+    const labelVolume = document.getElementById("label-volume");
+    const btnMuteWatch = document.getElementById("btn-mute-watch");
+
+    function setupWatchVolumeBoost(stream) {
+      if (watchAudioCtx) {
+        watchAudioCtx.close().catch(() => {});
+        watchAudioCtx = null;
+        watchGainNode = null;
+      }
+      if (stream.getAudioTracks().length === 0) return;
+
+      try {
+        watchAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        watchAudioSource = watchAudioCtx.createMediaStreamSource(stream);
+        watchGainNode = watchAudioCtx.createGain();
+        watchAudioSource.connect(watchGainNode);
+        watchGainNode.connect(watchAudioCtx.destination);
+        // Desativa saída direta duplicada do elemento <video> e controla 100% pelo GainNode (suporta até 200%!)
+        mainVideo.muted = true;
+        applyWatchVolume();
+      } catch (_) {
+        mainVideo.muted = false;
+      }
+    }
+
+    function applyWatchVolume() {
+      const val = parseInt(sliderVolume.value, 10);
+      labelVolume.textContent = val + "%";
+      btnMuteWatch.textContent = val === 0 ? "🔇" : val > 100 ? "🔊+" : "🔊";
+
+      if (watchGainNode && watchAudioCtx) {
+        if (watchAudioCtx.state === "suspended") watchAudioCtx.resume().catch(() => {});
+        watchGainNode.gain.value = val / 100;
+      } else {
+        mainVideo.muted = val === 0;
+        mainVideo.volume = Math.min(1, val / 100);
+      }
+    }
+
+    sliderVolume.addEventListener("input", applyWatchVolume);
+    btnMuteWatch.addEventListener("click", () => {
+      if (parseInt(sliderVolume.value, 10) > 0) {
+        sliderVolume.dataset.prev = sliderVolume.value;
+        sliderVolume.value = 0;
+      } else {
+        sliderVolume.value = sliderVolume.dataset.prev || 100;
+      }
+      applyWatchVolume();
+    });
+
+    // =========================================================================
+    // RENDERIZAÇÃO DA LISTA DE USUÁRIOS E CHAT
+    // =========================================================================
+    function renderUsers(users) {
+      roomUsers = users;
+      userCountEl.textContent = users.length;
+      usersListEl.innerHTML = "";
+
+      users.forEach((u) => {
+        const isMe = u.clientId === myClientId;
+        const isWatchingThis = activeViewerState && activeViewerState.streamerId === u.clientId;
+
+        const div = document.createElement("div");
+        div.className = "user-item" + (u.isStreaming ? " streaming" : "") + (isWatchingThis ? " watching" : "");
+
+        const initials = (u.nick || "?").slice(0, 2).toUpperCase();
+        let subText = isMe ? "Você" : "Na sala";
+        if (u.isStreaming && u.streamInfo) {
+          const audioIcon = !u.streamInfo.hasAudio || u.streamInfo.audioMuted ? "🔇" : "🔊";
+          subText = `${u.streamInfo.label || "Ao vivo"} ${audioIcon}`;
+        }
+
+        div.innerHTML = `
+          <div class="user-info">
+            <div class="user-avatar">${escapeHtml(initials)}</div>
+            <div class="user-meta">
+              <div class="user-name">${escapeHtml(u.nick)} ${isMe ? '<span style="color:#8b98b1;font-size:11px;">(você)</span>' : ""}</div>
+              <div class="user-sub">${escapeHtml(subText)}</div>
+            </div>
+          </div>
+          ${u.isStreaming ? `<span class="live-badge">🔴 ${isWatchingThis ? "ASSISTINDO" : "AO VIVO"}</span>` : ""}
+        `;
+
+        if (u.isStreaming) {
+          div.addEventListener("click", () => {
+            startWatching(u.clientId, u.nick);
+          });
+        }
+
+        usersListEl.appendChild(div);
+      });
+    }
+
+    const chatMessagesEl = document.getElementById("chat-messages");
+    const chatForm = document.getElementById("chat-form");
+    const chatInput = document.getElementById("chat-input");
+
+    function renderChatHistory(list) {
+      chatMessagesEl.innerHTML = "";
+      list.forEach((m) => appendChatMessage(m));
+    }
+
+    function appendChatMessage(m) {
+      if (!m) return;
+      const div = document.createElement("div");
+      div.className = "chat-msg";
+      const timeStr = new Date(m.time || Date.now()).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      div.innerHTML = `
+        <div class="chat-msg-header">
+          <span class="chat-msg-author">${escapeHtml(m.nick)}</span>
+          <span class="chat-msg-time">${timeStr}</span>
+        </div>
+        <div>${escapeHtml(m.text)}</div>
+      `;
+      chatMessagesEl.appendChild(div);
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = "";
+      try {
+        await apiAction("chat", { text });
+      } catch (_) {}
+    });
+
+    // =========================================================================
+    // CONTROLES DE TELA CHEIA, PIP, TEATRO E SAÍDA
+    // =========================================================================
+    document.getElementById("btn-toggle-theater").addEventListener("click", () => {
+      document.body.classList.toggle("theater-mode");
+    });
+
+    document.getElementById("btn-fullscreen").addEventListener("click", () => {
+      const vp = document.getElementById("video-viewport");
+      if (!document.fullscreenElement) {
+        (vp.requestFullscreen || vp.webkitRequestFullscreen).call(vp);
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    document.getElementById("btn-pip").addEventListener("click", async () => {
+      if (mainVideo.readyState >= 2 && document.pictureInPictureEnabled) {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await mainVideo.requestPictureInPicture();
+        }
+      }
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+      await stopScreenShare();
+      stopWatching(true);
+      try { await apiAction("leave"); } catch (_) {}
+      if (eventSource) eventSource.close();
+      location.reload();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      if (myClientId) {
+        navigator.sendBeacon(
+          "/api/tela/action",
+          new Blob(
+            [JSON.stringify({ action: "leave", clientId: myClientId, password: roomPassword })],
+            { type: "application/json" }
+          )
+        );
+      }
+    });
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>

@@ -6,6 +6,7 @@
   * [⚡ PocketBase (Banco, Login e Sites)](docs/09-manual-pocketbase-banco-e-api.md)
   * [🏠 CasaOS & Node-RED (NAS e Bots)](docs/10-manual-casaos-e-nodered.md)
   * [🔗 Tailscale Funnel (Link Fixo para Amigos)](docs/12-manual-tailscale-funnel.md)
+  * [🖥️ TelaP2P (Compartilhar Tela Zero Latência)](docs/13-servidor-compartilhamento-tela-webrtc.md)
   * [☁️ Cloudflare Tunnel (Domínio Próprio)](docs/11-manual-cloudflare-tunnel.md)
   * [🚀 Deixar Vários Projetos ON 24/7](docs/07-deploy-visual-estilo-vercel.md)
   * [🎮 Ideias: Jogos, Git e Smart Home](docs/06-arquitetura-homelab-e-servicos.md)
