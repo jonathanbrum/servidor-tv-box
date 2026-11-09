@@ -752,34 +752,11 @@
           </div>
 
           <div class="field-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <label style="margin:0;"><span>🔊 Origem do Áudio</span></label>
-              <button type="button" id="btn-toggle-audio-help" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;text-decoration:underline;">💡 Como isolar só o jogo?</button>
-            </div>
+            <label><span>🔊 Áudio da Transmissão</span></label>
             <select id="select-audio-mode" class="select-input">
-              <option value="system_all" selected>🖥️ Áudio da Janela ou Tela (Padrão)</option>
-              <option value="custom_device">🎛️ Canal Isolado / Cabo Virtual (Jogo Sem Eco!)</option>
+              <option value="system_all" selected>🔊 Transmitir com Áudio (Tela, Janela ou Aba)</option>
               <option value="none">🔇 Sem Áudio (Somente Imagem)</option>
             </select>
-          </div>
-
-          <div class="field-row" id="custom-audio-device-row" style="display:none;">
-            <label>
-              <span>🎙️ Dispositivo / Cabo Virtual</span>
-              <a href="#" id="btn-refresh-devices" style="color:var(--accent);text-decoration:none;">🔄 Atualizar Canais</a>
-            </label>
-            <select id="select-audio-device" class="select-input">
-              <option value="">Carregando dispositivos...</option>
-            </select>
-          </div>
-
-          <!-- Card Explicativo de Como Isolar o Jogo -->
-          <div id="audio-help-box" style="display:none;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.35);border-radius:10px;padding:10px;font-size:11.5px;line-height:1.45;color:var(--text);">
-            <strong style="color:var(--accent);display:block;margin-bottom:4px;">🎯 Segredo para isolar o Jogo sem o Discord:</strong>
-            1. Baixe o driver gratuito <b>VB-CABLE</b> (vb-audio.com/Cable).<br/>
-            2. No Windows (<i>Configurações &gt; Sistema &gt; Som &gt; Volume do app</i>), mude a Saída do seu <b>Jogo</b> para <code>CABLE Input</code>.<br/>
-            3. No Painel de Som clássico (pressione <code>Win + R</code> e digite <code>mmsys.cpl</code>), aba <i>Gravação</i>, dê 2 cliques em <code>CABLE Output</code> &gt; aba <i>Escutar</i> &gt; marque <i>"Escutar o dispositivo"</i> com seu Fone (para você continuar ouvindo o jogo normalmente).<br/>
-            4. Aqui no site, selecione <b>CABLE Output</b>. A transmissão pegará <b>SOMENTE o seu jogo</b> sem eco do Discord!
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1161,144 +1138,30 @@
       settingsPopover.classList.remove("open");
     });
 
-    const customAudioRow = document.getElementById("custom-audio-device-row");
-    const selectAudioDevice = document.getElementById("select-audio-device");
-    const audioHelpBox = document.getElementById("audio-help-box");
-    const btnToggleAudioHelp = document.getElementById("btn-toggle-audio-help");
-
-    if (btnToggleAudioHelp && audioHelpBox) {
-      btnToggleAudioHelp.addEventListener("click", () => {
-        audioHelpBox.style.display = audioHelpBox.style.display === "none" ? "block" : "none";
-      });
-    }
-
     const savedAudioMode = localStorage.getItem("tela_audio_mode");
     if (savedAudioMode && selectAudioMode) {
       selectAudioMode.value = savedAudioMode;
-      if (savedAudioMode === "custom_device") {
-        customAudioRow.style.display = "flex";
-      }
-    }
-
-    async function loadCustomAudioDevices() {
-      try {
-        const temp = await navigator.mediaDevices.getUserMedia({ audio: true });
-        temp.getTracks().forEach((t) => t.stop());
-      } catch (_) {}
-
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter((d) => d.kind === "audioinput");
-      selectAudioDevice.innerHTML = "";
-      if (audioInputs.length === 0) {
-        selectAudioDevice.innerHTML = `<option value="">Nenhum canal de áudio encontrado</option>`;
-        return;
-      }
-      const savedDevice = localStorage.getItem("tela_audio_device");
-      audioInputs.forEach((d, idx) => {
-        const opt = document.createElement("option");
-        opt.value = d.deviceId;
-        opt.textContent = d.label || `Canal de Áudio #${idx + 1}`;
-        if (savedDevice && d.deviceId === savedDevice) {
-          opt.selected = true;
-        }
-        selectAudioDevice.appendChild(opt);
-      });
-    }
-
-    if (selectAudioMode.value === "custom_device") {
-      loadCustomAudioDevices();
     }
 
     selectAudioMode.addEventListener("change", async () => {
       localStorage.setItem("tela_audio_mode", selectAudioMode.value);
-      if (selectAudioMode.value === "custom_device") {
-        customAudioRow.style.display = "flex";
-        await loadCustomAudioDevices();
-      } else {
-        customAudioRow.style.display = "none";
-      }
       if (localStream) {
-        await updateLiveAudioTrack();
-      }
-    });
-
-    selectAudioDevice.addEventListener("change", async () => {
-      if (selectAudioDevice.value) {
-        localStorage.setItem("tela_audio_device", selectAudioDevice.value);
-      }
-      if (localStream && selectAudioMode.value === "custom_device") {
-        await updateLiveAudioTrack();
-      }
-    });
-
-    document.getElementById("btn-refresh-devices").addEventListener("click", (e) => {
-      e.preventDefault();
-      loadCustomAudioDevices();
-    });
-
-    async function updateLiveAudioTrack() {
-      if (!localStream) return;
-      const mode = selectAudioMode.value;
-      const deviceId = selectAudioDevice.value;
-
-      try {
-        let newAudioTrack = null;
-
-        if (mode === "custom_device" && deviceId) {
-          const customAudioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              deviceId: { exact: deviceId },
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              channelCount: 2
-            }
-          });
-          newAudioTrack = customAudioStream.getAudioTracks()[0];
-        } else if (mode === "none") {
-          newAudioTrack = null;
-        } else {
-          return;
-        }
-
-        const oldTracks = localStream.getAudioTracks();
-
-        // Substituição sem interrupção usando replaceTrack nos peers WebRTC
-        for (const [, conn] of senderConnections.entries()) {
-          const senders = conn.pc.getSenders();
-          let audioSender = senders.find((s) => s.track && s.track.kind === "audio");
-          if (!audioSender) {
-            audioSender = senders.find((s) => !s.track);
-          }
-          if (audioSender) {
-            await audioSender.replaceTrack(newAudioTrack);
-          } else if (newAudioTrack) {
-            conn.pc.addTrack(newAudioTrack, localStream);
-          }
-        }
-
-        oldTracks.forEach((t) => {
-          t.stop();
-          localStream.removeTrack(t);
-        });
-
-        if (newAudioTrack) {
-          localStream.addTrack(newAudioTrack);
-          setupSelfVuMeter(localStream);
-          isSelfAudioMuted = false;
-        } else {
-          stopSelfVuMeter();
+        const audioTracks = localStream.getAudioTracks();
+        if (selectAudioMode.value === "none") {
+          audioTracks.forEach((t) => (t.enabled = false));
           isSelfAudioMuted = true;
+          stopSelfVuMeter();
+        } else {
+          audioTracks.forEach((t) => (t.enabled = true));
+          isSelfAudioMuted = false;
+          setupSelfVuMeter(localStream);
         }
-
         updateSelfAudioButtonUI();
         await apiAction("update_stream", {
           streamInfo: getStreamInfoSummary()
         });
-      } catch (err) {
-        console.warn("Aviso ao trocar áudio em tempo real:", err);
       }
-    }
+    });
 
     function getCaptureConstraints() {
       const height = parseInt(selectRes.value, 10) || 720;
@@ -1313,7 +1176,7 @@
         cursor: "always"
       };
 
-      if (audioMode === "none" || audioMode === "custom_device") {
+      if (audioMode === "none") {
         return {
           video: videoConstraints,
           audio: false,
@@ -1322,8 +1185,7 @@
         };
       }
 
-      // Modo padrão (system_all): compatível com Tela Inteira, Janela e Guia do Chrome
-      // systemAudio: "include" garante que o Chrome NÃO bloqueie o áudio quando escolher Tela Inteira!
+      // Captura Direta pelo Navegador (Tela Inteira, Janela ou Guia do Chrome)
       return {
         video: videoConstraints,
         audio: {
@@ -1362,23 +1224,6 @@
         settingsPopover.classList.remove("open");
         const options = getCaptureConstraints();
         const stream = await navigator.mediaDevices.getDisplayMedia(options);
-
-        if (selectAudioMode.value === "custom_device" && selectAudioDevice.value) {
-          try {
-            const customAudioStream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                deviceId: { exact: selectAudioDevice.value },
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false,
-                channelCount: 2
-              }
-            });
-            customAudioStream.getAudioTracks().forEach((t) => stream.addTrack(t));
-          } catch (audioErr) {
-            console.warn("Aviso ao capturar dispositivo de áudio selecionado:", audioErr);
-          }
-        }
 
         if (localStream) {
           localStream.getTracks().forEach((t) => t.stop());
