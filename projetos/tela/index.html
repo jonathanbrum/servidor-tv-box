@@ -947,6 +947,12 @@
     const btnSwitchSource = document.getElementById("btn-switch-source");
     const btnStopShare = document.getElementById("btn-stop-share");
 
+    const chatDrawer = document.getElementById("chat-drawer");
+    const chatUnreadDot = document.getElementById("chat-unread-dot");
+    const chatMessagesEl = document.getElementById("chat-messages");
+    const chatForm = document.getElementById("chat-form");
+    const chatInput = document.getElementById("chat-input");
+
     if (myNick) inputNick.value = myNick;
     if (roomPassword) inputPass.value = roomPassword;
 
@@ -2080,12 +2086,6 @@
     // =========================================================================
     // CHAT LATERAL RETRÁTIL
     // =========================================================================
-    const chatDrawer = document.getElementById("chat-drawer");
-    const chatUnreadDot = document.getElementById("chat-unread-dot");
-    const chatMessagesEl = document.getElementById("chat-messages");
-    const chatForm = document.getElementById("chat-form");
-    const chatInput = document.getElementById("chat-input");
-
     document.getElementById("btn-toggle-chat").addEventListener("click", () => {
       chatDrawer.classList.toggle("open");
       if (chatDrawer.classList.contains("open")) {
