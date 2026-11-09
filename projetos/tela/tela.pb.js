@@ -35,9 +35,25 @@ routerAdd("POST", "/api/tela/action", (e) => {
 
         // Carrega estado em memória e limpa clientes desconectados
         let rawState = $app.store().get("tela_room_state");
-        let state = rawState ? JSON.parse(rawState) : { users: {}, chat: [] };
+        let state = rawState ? JSON.parse(rawState) : { users: {}, chat: [], diag: [] };
         if (!state.users) state.users = {};
         if (!state.chat) state.chat = [];
+        if (!state.diag) state.diag = [];
+
+        const pushDiag = (entry) => {
+            state.diag.push( Object.assign({ t: Date.now(), from: clientId }, entry) );
+            if (state.diag.length > 80) state.diag = state.diag.slice(state.diag.length - 80);
+        };
+
+        if (action === "diag_read") {
+            return e.json(200, { ok: true, users: Object.values(state.users), diag: state.diag });
+        }
+
+        if (action === "diag_log") {
+            pushDiag({ kind: "client_diag", nick: String(body.nick || ""), info: body.info || {} });
+            $app.store().set("tela_room_state", JSON.stringify(state));
+            return e.json(200, { ok: true });
+        }
 
         let stateChangedByCleanup = false;
         const knownIds = Object.keys(state.users);
@@ -144,6 +160,7 @@ routerAdd("POST", "/api/tela/action", (e) => {
                 audioMuted: false
             };
             state.users[clientId] = currentUser;
+            pushDiag({ kind: action, nick: currentUser.nick, streamInfo: currentUser.streamInfo });
             $app.store().set("tela_room_state", JSON.stringify(state));
 
             const userList = Object.values(state.users);
@@ -184,7 +201,11 @@ routerAdd("POST", "/api/tela/action", (e) => {
             if (!targetId) {
                 return e.json(400, { ok: false, error: "targetId ausente." });
             }
-            if (stateChangedByCleanup) {
+            const sigType = String(body.signalType || "");
+            if (sigType !== "ice") {
+                pushDiag({ kind: "sig_" + sigType, nick: currentUser.nick, to: targetId });
+                $app.store().set("tela_room_state", JSON.stringify(state));
+            } else if (stateChangedByCleanup) {
                 $app.store().set("tela_room_state", JSON.stringify(state));
             }
             const delivered = sendToClient(targetId, {

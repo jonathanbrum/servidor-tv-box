@@ -724,12 +724,23 @@
         <div class="control-grid" style="margin-top:8px;">
           <div class="control-row">
             <label>
-              <span>🔊 Qual Áudio Enviar? (Filtro)</span>
+              <span>🔊 Origem do Áudio Compartilhado</span>
             </label>
-            <select id="select-audio-mode" class="select-input" title="Escolha se quer isolar apenas o som de uma aba, enviar som do sistema ou mutar tudo">
-              <option value="tab_only" selected>🎯 Só Áudio de Aba (Não vaza Windows)</option>
-              <option value="system_all">🔊 Áudio Completo (Jogo / Sistema Hi-Fi)</option>
+            <select id="select-audio-mode" class="select-input" title="Isola o som apenas do jogo/janela ou aba para não dar eco na voz dos amigos">
+              <option value="window_or_tab" selected>🎮 Só Som do Jogo/Janela ou Aba (Sem Eco da Call)</option>
+              <option value="custom_device">🎛️ Escolher Dispositivo / Canal de Áudio...</option>
+              <option value="system_all">🔊 Som do Windows Inteiro (Inclui tudo)</option>
               <option value="none">🔇 Sem Áudio (100% Mudo)</option>
+            </select>
+          </div>
+
+          <div class="control-row" id="custom-audio-device-row" style="display:none;">
+            <label>
+              <span>🎙️ Canal / Dispositivo de Áudio</span>
+              <a href="#" id="btn-refresh-devices" style="color:var(--accent);text-decoration:none;font-size:10.5px;">🔄 Atualizar</a>
+            </label>
+            <select id="select-audio-device" class="select-input">
+              <option value="">Carregando dispositivos de áudio...</option>
             </select>
           </div>
 
@@ -899,7 +910,17 @@
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun.cloudflare.com:3478" }
+        { urls: "stun:stun.cloudflare.com:3478" },
+        {
+          urls: [
+            "turn:openrelay.metered.ca:80",
+            "turn:openrelay.metered.ca:80?transport=tcp",
+            "turn:openrelay.metered.ca:443",
+            "turns:openrelay.metered.ca:443?transport=tcp"
+          ],
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }
       ],
       bundlePolicy: "max-bundle",
       rtcpMuxPolicy: "require"
@@ -1154,10 +1175,12 @@
         cursor: "always"
       };
 
-      if (audioMode === "none") {
+      if (audioMode === "none" || audioMode === "custom_device") {
         return {
           video: videoConstraints,
-          audio: false
+          audio: false,
+          selfBrowserSurface: "exclude",
+          surfaceSwitching: "include"
         };
       }
 
@@ -1167,7 +1190,8 @@
         noiseSuppression: false,
         autoGainControl: false,
         channelCount: 2,
-        sampleRate: 48000
+        sampleRate: 48000,
+        suppressLocalAudioPlayback: false
       };
 
       const displayMediaOptions = {
@@ -1177,8 +1201,10 @@
         surfaceSwitching: "include"
       };
 
-      if (audioMode === "tab_only") {
-        // Esconde/exclui o áudio geral do Windows para não vazar sons indesejados!
+      if (audioMode === "window_or_tab") {
+        // Isola SOMENTE o áudio do processo da Janela selecionada (Jogo/App) ou Aba!
+        // Exclui o áudio global do Windows para NÃO duplicar a voz dos amigos da call (Discord/etc)!
+        displayMediaOptions.windowAudio = "window";
         displayMediaOptions.systemAudio = "exclude";
       } else {
         displayMediaOptions.systemAudio = "include";
@@ -1187,6 +1213,46 @@
 
       return displayMediaOptions;
     }
+
+    // Carrega lista de dispositivos de áudio do PC quando o usuário escolhe "Escolher Dispositivo"
+    const customAudioRow = document.getElementById("custom-audio-device-row");
+    const selectAudioDevice = document.getElementById("select-audio-device");
+
+    async function loadCustomAudioDevices() {
+      try {
+        // Pede permissão rápida de áudio para liberar os nomes reais dos dispositivos
+        const temp = await navigator.mediaDevices.getUserMedia({ audio: true });
+        temp.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter((d) => d.kind === "audioinput");
+      selectAudioDevice.innerHTML = "";
+      if (audioInputs.length === 0) {
+        selectAudioDevice.innerHTML = `<option value="">Nenhum canal encontrado</option>`;
+        return;
+      }
+      audioInputs.forEach((d, idx) => {
+        const opt = document.createElement("option");
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Canal de Áudio #${idx + 1}`;
+        selectAudioDevice.appendChild(opt);
+      });
+    }
+
+    selectAudioMode.addEventListener("change", () => {
+      if (selectAudioMode.value === "custom_device") {
+        customAudioRow.style.display = "flex";
+        loadCustomAudioDevices();
+      } else {
+        customAudioRow.style.display = "none";
+      }
+    });
+
+    document.getElementById("btn-refresh-devices").addEventListener("click", (e) => {
+      e.preventDefault();
+      loadCustomAudioDevices();
+    });
 
     function getStreamInfoSummary() {
       const res = selectRes.value + "p";
@@ -1208,6 +1274,24 @@
       try {
         const options = getCaptureConstraints();
         const stream = await navigator.mediaDevices.getDisplayMedia(options);
+
+        // Se o usuário escolheu um Canal/Dispositivo de Áudio específico, anexa a trilha dele na transmissão!
+        if (selectAudioMode.value === "custom_device" && selectAudioDevice.value) {
+          try {
+            const customAudioStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                deviceId: { exact: selectAudioDevice.value },
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 2
+              }
+            });
+            customAudioStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+          } catch (audioErr) {
+            console.warn("Aviso ao capturar dispositivo de áudio selecionado:", audioErr);
+          }
+        }
 
         // Se já havia uma stream anterior, limpa
         if (localStream) {
@@ -1439,8 +1523,7 @@
             }
             params.encodings[0].maxBitrate = maxBitrate;
             params.encodings[0].maxFramerate = maxFps;
-            params.encodings[0].priority = "high";
-            params.encodings[0].networkPriority = "high";
+            // IMPORTANTE: Não usar networkPriority="high" (DSCP QoS), pois placas Intel Wireless-AC e roteadores descartam pacotes UDP grandes marcados com DSCP!
             params.degradationPreference =
               hint === "detail" ? "maintain-resolution" : "maintain-framerate";
             await sender.setParameters(params);
@@ -1454,7 +1537,6 @@
               params.encodings = [{}];
             }
             params.encodings[0].maxBitrate = 160000; // 160 kbps Hi-Fi Audio
-            params.encodings[0].priority = "high";
             await sender.setParameters(params);
           } catch (_) {}
         }
@@ -1508,13 +1590,86 @@
       );
     }
 
+    // Aguarda até maxWaitMs para embutir os candidatos STUN/TURN direto no SDP (evita corrida de requisições HTTP)
+    function waitForIceGathering(pc, maxWaitMs = 600) {
+      return new Promise((resolve) => {
+        if (pc.iceGatheringState === "complete") {
+          resolve();
+          return;
+        }
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          resolve();
+        };
+        const timer = setTimeout(finish, maxWaitMs);
+        pc.addEventListener("icegatheringstatechange", () => {
+          if (pc.iceGatheringState === "complete") finish();
+        });
+      });
+    }
+
     async function handleWebRTCSignal(msg) {
       const { fromId, fromNick, signalType, signalData } = msg;
 
-      // 1. Espectador pediu para assistir nossa transmissão
+      // 1. Espectador pediu para assistir nossa transmissão (Modo 1: Streamer é Offerer)
       if (signalType === "watch_request") {
         if (!localStream) return;
         await createSenderPeerAndOffer(fromId);
+      }
+
+      // 1B. Fallback Automático Anti-CGNAT: Espectador enviou Offer (Modo 2: Viewer é Offerer, Streamer é Answerer!)
+      else if (signalType === "viewer_offer") {
+        if (!localStream) return;
+        closeSenderPeer(fromId);
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        const connObj = { pc, iceQueue: [], remoteDescSet: true };
+        senderConnections.set(fromId, connObj);
+
+        pc.onicecandidate = (ev) => {
+          if (ev.candidate && connObj.initialSdpSent) {
+            apiAction("webrtc_signal", {
+              targetId: fromId,
+              signalType: "ice",
+              signalData: { role: "from_streamer", candidate: ev.candidate }
+            }).catch(() => {});
+          }
+        };
+
+        await pc.setRemoteDescription(new RTCSessionDescription(signalData));
+        localStream.getTracks().forEach((track) => {
+          pc.addTrack(track, localStream);
+        });
+
+        const answer = await pc.createAnswer();
+        answer.sdp = optimizeSdpForLowLatency(answer.sdp);
+        await pc.setLocalDescription(answer);
+        await waitForIceGathering(pc, 600);
+        connObj.initialSdpSent = true;
+
+        const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
+        const fps = parseInt(selectFps.value, 10) || 30;
+        await tuneSenderParameters(pc, bitrate, fps, selectHint.value);
+
+        await apiAction("webrtc_signal", {
+          targetId: fromId,
+          signalType: "streamer_answer",
+          signalData: pc.localDescription
+        });
+      }
+
+      // 1C. Espectador recebeu Answer do Streamer (Modo 2)
+      else if (signalType === "streamer_answer") {
+        if (!activeViewerState || activeViewerState.streamerId !== fromId) return;
+        const pc = activeViewerState.pc;
+        await pc.setRemoteDescription(new RTCSessionDescription(signalData));
+        activeViewerState.remoteDescSet = true;
+        for (const cand of activeViewerState.iceQueue) {
+          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        }
+        activeViewerState.iceQueue = [];
       }
 
       // 2. Recebemos uma Offer do transmissor que queremos assistir
@@ -1533,6 +1688,8 @@
         const answer = await pc.createAnswer();
         answer.sdp = optimizeSdpForLowLatency(answer.sdp);
         await pc.setLocalDescription(answer);
+        await waitForIceGathering(pc, 600);
+        activeViewerState.initialSdpSent = true;
 
         await apiAction("webrtc_signal", {
           targetId: fromId,
@@ -1599,8 +1756,26 @@
         pc.addTrack(track, localStream);
       });
 
+      // Força preferência pelo codec VP8 para evitar travamento do encoder de hardware H.264 na Intel Iris Xe
+      try {
+        if (RTCRtpSender.getCapabilities) {
+          const caps = RTCRtpSender.getCapabilities("video");
+          if (caps && caps.codecs) {
+            const vp8Codecs = caps.codecs.filter((c) => c.mimeType.toLowerCase() === "video/vp8");
+            const otherCodecs = caps.codecs.filter((c) => c.mimeType.toLowerCase() !== "video/vp8");
+            if (vp8Codecs.length > 0) {
+              pc.getTransceivers().forEach((t) => {
+                if (t.sender && t.sender.track && t.sender.track.kind === "video" && t.setCodecPreferences) {
+                  t.setCodecPreferences([...vp8Codecs, ...otherCodecs]);
+                }
+              });
+            }
+          }
+        }
+      } catch (_) {}
+
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
+        if (ev.candidate && connObj.initialSdpSent) {
           apiAction("webrtc_signal", {
             targetId: viewerId,
             signalType: "ice",
@@ -1609,15 +1784,43 @@
         }
       };
 
+      pc.oniceconnectionstatechange = () => {
+        apiAction("diag_log", {
+          info: { role: "streamer", viewerId, iceState: pc.iceConnectionState, connState: pc.connectionState }
+        }).catch(() => {});
+      };
+
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "failed" || pc.connectionState === "closed") {
           closeSenderPeer(viewerId);
         }
       };
 
+      setTimeout(async () => {
+        try {
+          if (pc.connectionState === "closed") return;
+          const st = await pc.getStats();
+          let bytesSent = 0, framesEncoded = 0, pairState = "";
+          st.forEach((r) => {
+            if (r.type === "outbound-rtp" && r.kind === "video") {
+              bytesSent = r.bytesSent || 0;
+              framesEncoded = r.framesEncoded || 0;
+            }
+            if (r.type === "candidate-pair" && r.nominated) {
+              pairState = `${r.state} (bytes:${r.bytesSent})`;
+            }
+          });
+          apiAction("diag_log", {
+            info: { role: "streamer_4s", viewerId, iceState: pc.iceConnectionState, bytesSent, framesEncoded, pairState }
+          }).catch(() => {});
+        } catch (_) {}
+      }, 4000);
+
       const offer = await pc.createOffer();
       offer.sdp = optimizeSdpForLowLatency(offer.sdp);
       await pc.setLocalDescription(offer);
+      await waitForIceGathering(pc, 600);
+      connObj.initialSdpSent = true;
 
       const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
       const fps = parseInt(selectFps.value, 10) || 30;
@@ -1685,7 +1888,7 @@
       renderUsers(roomUsers);
 
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
+        if (ev.candidate && activeViewerState && activeViewerState.initialSdpSent) {
           apiAction("webrtc_signal", {
             targetId: streamerId,
             signalType: "ice",
@@ -1724,6 +1927,47 @@
         targetId: streamerId,
         signalType: "watch_request"
       });
+
+      // Se em 3.5 segundos a conexão direta (Modo 1) não tiver conectado por causa de NAT/Firewall do Streamer,
+      // inverte automaticamente o papel ICE (Viewer cria o Offer -> Streamer responde Answer)!
+      setTimeout(async () => {
+        if (!activeViewerState || activeViewerState.streamerId !== streamerId) return;
+        const st = activeViewerState.pc.iceConnectionState;
+        if (st !== "connected" && st !== "completed") {
+          try {
+            try { activeViewerState.pc.close(); } catch (_) {}
+            const pc2 = new RTCPeerConnection(RTC_CONFIG);
+            activeViewerState.pc = pc2;
+            activeViewerState.iceQueue = [];
+            activeViewerState.remoteDescSet = false;
+            activeViewerState.initialSdpSent = false;
+
+            pc2.ontrack = pc.ontrack;
+            pc2.onicecandidate = (ev) => {
+              if (ev.candidate && activeViewerState && activeViewerState.initialSdpSent) {
+                apiAction("webrtc_signal", {
+                  targetId: streamerId,
+                  signalType: "ice",
+                  signalData: { role: "from_viewer", candidate: ev.candidate }
+                }).catch(() => {});
+              }
+            };
+
+            pc2.addTransceiver("video", { direction: "recvonly" });
+            pc2.addTransceiver("audio", { direction: "recvonly" });
+            const vOffer = await pc2.createOffer();
+            await pc2.setLocalDescription(vOffer);
+            await waitForIceGathering(pc2, 600);
+            activeViewerState.initialSdpSent = true;
+
+            await apiAction("webrtc_signal", {
+              targetId: streamerId,
+              signalType: "viewer_offer",
+              signalData: pc2.localDescription
+            });
+          } catch (_) {}
+        }
+      }, 3500);
     }
 
     function stopWatching(notifyStreamer = true) {
