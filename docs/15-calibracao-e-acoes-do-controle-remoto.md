@@ -68,12 +68,20 @@ A Central possui uma área dedicada para gerenciar todas as automações e APIs 
 
 ---
 
-## 💡 5. Controle do LED Físico Frontal (Feedback de Standby e IR)
+## 💡 5. Controle do LED Físico Frontal Bicolor (Azul & Vermelho)
 
-- **Circuito de Hardware:** No Allwinner H313 (`X96Q v5.1`), o LED vermelho é controlado pelo pino `PH6` (`gpio-230`) através da interface `/sys/class/leds/red:disk-activity/brightness`. O circuito opera em **Active Low** (lógica invertida: `0` = Aceso, `1` = Apagado).
-- **Feedback ao Receber Sinal:** A cada clique no controle remoto (ou no controle virtual), o daemon pulsa o LED vermelho por 120ms, dando a resposta tátil que existia no Android original.
-- **Indicação de Standby / Desligado:** Ao disparar o comando de desligar o servidor, o sistema trava o LED vermelho em `0` (aceso fixo). O LED permanece 100% vermelho enquanto a placa estiver em standby!
-- **Aba de Diagnóstico de Luzes:** Permite ligar, desligar, piscar 5 vezes ou ativar o modo de feedback automático do kernel (`rc-feedback`).
+A placa da TV Box `X96Q v5.1` possui um LED frontal duplo (**Bicolor**) comutado pelo pino **`PH5` (GPIO 229)** do SoC Allwinner H313, controlado nativamente em Python via `python3-libgpiod` (`gpiochip0`):
+
+- **Lógica de Hardware Complementar:**
+  - **Pino 229 = `1` (HIGH) ➔ LED AZUL:** Indica que o sistema Linux está ligado e operando normalmente.
+  - **Pino 229 = `0` (LOW) ➔ LED VERMELHO:** Indica modo **Standby / Desligado**.
+- **Feedback Visual de Sinal IR:** A cada comando recebido do controle remoto (ou clicado no simulador web), o daemon pulsa o pino para `0` (Vermelho) por 120ms e retorna para `1` (Azul). Esse comportamento reproduz exatamente o sinal visual original do Android de fábrica!
+- **Indicação de Standby / Desligamento:** Ao executar o comando de desligar (`poweroff`), o daemon aciona o pino em `0` (Vermelho fixo) antes de desmontar os discos, mantendo a TV Box em standby com a luz vermelha contínua.
+- **Aba "💡 Luzes Bicolor" no Painel Web:** Permite testar manualmente as cores:
+  - 🔵 **Deixar Azul:** Força estado ativo normal (`val = 1`).
+  - 🔴 **Deixar Vermelho:** Força estado de repouso (`val = 0`).
+  - ✨ **Simular Piscar IR:** Dispara o pulso de 120ms (Azul ➔ Vermelho ➔ Azul).
+  - 🚨 **Alternar Cores 4x:** Efeito de alarme/alerta alternando azul e vermelho.
 
 ---
 
@@ -82,10 +90,11 @@ A Central possui uma área dedicada para gerenciar todas as automações e APIs 
 - **Sensor e Driver:** O sensor `sunxi-ir` opera no barramento SoC da Allwinner H313 e entrega os eventos brutos em `/dev/input/event5`.
 - **Protocolo de Rádio IR:** Configurado exclusivamente para o protocolo **`nec`** (`ir-keytable -p nec`), eliminando ruídos.
 - **Filtro de Repetição (Debounce):** Configurado em `300ms`, evitando disparos repetidos acidentais.
+- **Servidor Web Dual-Stack (IPv4 + IPv6):** O daemon roda um servidor HTTP multithread assíncrono em `[::]:1886` com `IPV6_V6ONLY = 0`, garantindo conexão instantânea sem timeouts seja resolvido via IPv4 (`http://<IP_DA_TV_BOX>:1886`) ou via mDNS IPv6 do Windows (`http://tvbox.local:1886`).
 - **Daemon do Sistema (`systemd`):**
   - O serviço roda em background como `tvbox-remote-hub.service`.
-  - As ações funcionam **24/7 mesmo se nenhum navegador estiver aberto**.
-  - Consome apenas **~13-15 MB de memória RAM**, respeitando rigorosamente o limite de 1 GB da TV Box.
+  - As ações e o controle do LED funcionam **24/7 mesmo se nenhum navegador estiver aberto**.
+  - Consome apenas **~11-13 MB de memória RAM**, respeitando rigorosamente o limite de 1 GB da TV Box.
 
 ---
 
