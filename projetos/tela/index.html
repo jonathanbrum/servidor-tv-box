@@ -401,13 +401,21 @@
       position: absolute;
       bottom: 18px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(0);
       z-index: 40;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
       max-width: 96vw;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 1;
+    }
+
+    .bottom-dock-wrap.dock-hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(28px);
+      pointer-events: none;
     }
 
     /* Popover de Qualidade e Áudio */
@@ -1132,14 +1140,57 @@
     }
 
     // =========================================================================
+    // OCULTAÇÃO AUTOMÁTICA DO DOCK INFERIOR (ESTILO CINEMA / YOUTUBE)
+    // =========================================================================
+    const bottomDockWrap = document.querySelector(".bottom-dock-wrap");
+    let dockHideTimer = null;
+    let isMouseOverDock = false;
+
+    function showDockAndScheduleHide() {
+      if (!bottomDockWrap) return;
+      bottomDockWrap.classList.remove("dock-hidden");
+      clearTimeout(dockHideTimer);
+
+      if (isMouseOverDock || (settingsPopover && settingsPopover.classList.contains("open"))) {
+        return;
+      }
+
+      dockHideTimer = setTimeout(() => {
+        if (!isMouseOverDock && (!settingsPopover || !settingsPopover.classList.contains("open"))) {
+          bottomDockWrap.classList.add("dock-hidden");
+        }
+      }, 3000);
+    }
+
+    if (bottomDockWrap) {
+      bottomDockWrap.addEventListener("mouseenter", () => {
+        isMouseOverDock = true;
+        showDockAndScheduleHide();
+      });
+
+      bottomDockWrap.addEventListener("mouseleave", () => {
+        isMouseOverDock = false;
+        showDockAndScheduleHide();
+      });
+    }
+
+    window.addEventListener("mousemove", showDockAndScheduleHide);
+    window.addEventListener("mousedown", showDockAndScheduleHide);
+    window.addEventListener("touchstart", showDockAndScheduleHide);
+    window.addEventListener("keydown", showDockAndScheduleHide);
+    showDockAndScheduleHide();
+
+    // =========================================================================
     // POPOVER DE CONFIGURAÇÃO DE QUALIDADE E ORIGEM DE ÁUDIO
     // =========================================================================
     const settingsPopover = document.getElementById("settings-popover");
     document.getElementById("btn-open-settings").addEventListener("click", () => {
       settingsPopover.classList.toggle("open");
+      showDockAndScheduleHide();
     });
     document.getElementById("btn-close-settings").addEventListener("click", () => {
       settingsPopover.classList.remove("open");
+      showDockAndScheduleHide();
     });
 
     const savedAudioMode = localStorage.getItem("tela_audio_mode");
