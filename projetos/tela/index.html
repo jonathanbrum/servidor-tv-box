@@ -6,18 +6,20 @@
   <title>TelaP2P — Compartilhamento de Tela Zero Latência</title>
   <style>
     :root {
-      --bg-base: #0b0e14;
-      --bg-panel: #131822;
-      --bg-card: #1b2230;
-      --bg-hover: #252f42;
-      --border: #2a3447;
-      --text: #eef2f8;
-      --text-muted: #8b98b1;
-      --accent: #5865f2;
-      --accent-hover: #4752c4;
-      --success: #23a55a;
-      --danger: #f23f43;
-      --warning: #f0b232;
+      --bg-base: #07090e;
+      --bg-surface: #11151f;
+      --bg-elevated: #181e2c;
+      --bg-glass: rgba(19, 24, 36, 0.88);
+      --bg-hover: #232c40;
+      --border: rgba(255, 255, 255, 0.09);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
     }
 
     * {
@@ -31,63 +33,52 @@
       background: var(--bg-base);
       color: var(--text);
       height: 100vh;
+      width: 100vw;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       user-select: none;
     }
 
-    /* ================= TELA DE LOGIN ================= */
+    /* ================= MODAL DE LOGIN (SÓ APARECE NA 1ª VEZ) ================= */
     #login-screen {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at top, #1b2336 0%, #0b0e14 70%);
-      display: flex;
+      background: radial-gradient(circle at 50% 20%, #1e2640 0%, #07090e 75%);
+      display: none;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 2000;
       padding: 20px;
     }
 
-    .login-box {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+    .login-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 20px;
       width: 100%;
-      max-width: 410px;
-      padding: 28px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+      max-width: 400px;
+      padding: 30px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
     }
 
-    .login-logo {
+    .login-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
+      gap: 14px;
+      margin-bottom: 14px;
     }
 
-    .login-logo-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #5865f2, #8b5cf6);
+    .login-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 6px 16px rgba(88, 101, 242, 0.35);
-    }
-
-    .login-title {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .login-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 22px;
-      line-height: 1.4;
+      font-size: 24px;
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
     }
 
     .form-group {
@@ -96,10 +87,10 @@
 
     .form-group label {
       display: block;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11.5px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--text-muted);
       margin-bottom: 6px;
     }
@@ -107,33 +98,47 @@
     .form-input {
       width: 100%;
       padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
       background: var(--bg-base);
       color: var(--text);
-      font-size: 15px;
+      font-size: 14.5px;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
 
     .form-input:focus {
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     }
 
+    #login-error {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ================= BOTÕES GERAIS ================= */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: none;
-      font-size: 14px;
+      padding: 9px 15px;
+      border-radius: 11px;
+      border: 1px solid transparent;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
       color: #fff;
       background: var(--accent);
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
     .btn:hover:not(:disabled) {
@@ -142,92 +147,66 @@
     }
 
     .btn:disabled {
-      opacity: 0.55;
+      opacity: 0.5;
       cursor: not-allowed;
-    }
-
-    .btn-full {
-      width: 100%;
-      padding: 13px;
-      font-size: 15px;
     }
 
     .btn-success {
       background: var(--success);
     }
     .btn-success:hover:not(:disabled) {
-      background: #1d8a4b;
+      background: #059669;
     }
 
     .btn-danger {
       background: var(--danger);
     }
     .btn-danger:hover:not(:disabled) {
-      background: #d13034;
+      background: #dc2626;
     }
 
     .btn-ghost {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      border-color: var(--border);
       color: var(--text);
     }
     .btn-ghost:hover:not(:disabled) {
       background: var(--bg-hover);
+      border-color: var(--border-strong);
     }
 
-    .btn-warning {
-      background: #b45309;
-      border: 1px solid #f59e0b;
-    }
-
-    #login-error {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: rgba(242, 63, 67, 0.15);
-      border: 1px solid var(--danger);
-      color: #ff8b8e;
-      font-size: 13px;
-      display: none;
-    }
-
-    /* ================= LAYOUT PRINCIPAL ================= */
-    #app-container {
-      display: flex;
-      flex: 1;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* Barra Lateral Esquerda (Participantes + Controles de Qualidade/Áudio) */
-    .sidebar-left {
-      width: 300px;
-      background: var(--bg-panel);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      transition: margin-left 0.2s ease;
-    }
-
-    body.theater-mode .sidebar-left {
-      margin-left: -300px;
-    }
-
-    .brand-header {
-      padding: 14px 16px;
+    /* ================= BARRA SUPERIOR (PARTICIPANTES & TELEMETRIA) ================= */
+    .topbar {
+      height: 60px;
+      padding: 0 18px;
+      background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 14px;
+      z-index: 30;
+      flex-shrink: 0;
     }
 
-    .brand-title {
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .brand-pill {
       display: flex;
       align-items: center;
       gap: 9px;
-      font-weight: 700;
+      padding-right: 14px;
+      border-right: 1px solid var(--border);
+      font-weight: 800;
       font-size: 15px;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
     }
 
     .status-dot {
@@ -235,172 +214,246 @@
       height: 9px;
       border-radius: 50%;
       background: var(--success);
-      box-shadow: 0 0 8px var(--success);
+      box-shadow: 0 0 10px var(--success);
     }
 
-    .section-block {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      margin-bottom: 10px;
+    /* Lista Horizontal de Participantes no Topo */
+    .users-strip {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px;
+      scrollbar-width: none;
+    }
+    .users-strip::-webkit-scrollbar {
+      display: none;
     }
 
-    /* Lista de Usuários / Transmissões */
-    .users-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .user-item {
-      display: flex;
+    .user-chip {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 9px 11px;
-      border-radius: 10px;
-      background: var(--bg-card);
-      border: 1px solid transparent;
-      transition: all 0.15s;
-    }
-
-    .user-item.streaming {
-      border-color: rgba(242, 63, 67, 0.55);
-      background: linear-gradient(90deg, rgba(242, 63, 67, 0.12), var(--bg-card));
-      cursor: pointer;
-    }
-
-    .user-item.streaming:hover {
-      border-color: var(--danger);
-      background: rgba(242, 63, 67, 0.2);
-    }
-
-    .user-item.watching {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent);
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
+      gap: 8px;
+      padding: 5px 11px 5px 6px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
       font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s ease;
       flex-shrink: 0;
     }
 
-    .user-meta {
-      min-width: 0;
+    .user-chip.streaming {
+      border-color: rgba(239, 68, 68, 0.65);
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.18), var(--bg-elevated));
+      cursor: pointer;
     }
 
-    .user-name {
-      font-size: 14px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .user-chip.streaming:hover {
+      border-color: var(--danger);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
     }
 
-    .user-sub {
+    .user-chip.watching {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.22);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .chip-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 11px;
-      color: var(--text-muted);
+      font-weight: 800;
+      color: #fff;
     }
 
-    .live-badge {
+    .live-pill {
       background: var(--danger);
       color: #fff;
       font-size: 10px;
       font-weight: 800;
-      padding: 3px 7px;
-      border-radius: 6px;
+      padding: 2px 7px;
+      border-radius: 999px;
       letter-spacing: 0.04em;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
       animation: pulseLive 2s infinite;
     }
 
     @keyframes pulseLive {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.72; }
+      50% { opacity: 0.7; }
     }
 
-    /* Painel de Configuração de Qualidade e Áudio */
-    .control-grid {
+    .topbar-right {
       display: flex;
-      flex-direction: column;
-      gap: 9px;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
-    .control-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .control-row label {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .select-input {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-base);
-      color: var(--text);
-      font-size: 12.5px;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .select-input:focus {
-      border-color: var(--accent);
-    }
-
-    .preset-pills {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
+    .telemetry-group {
+      display: none;
+      align-items: center;
       gap: 6px;
-      margin-bottom: 4px;
+      background: var(--bg-base);
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-badge {
+      font-size: 11.5px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: var(--text-muted);
+      padding: 2px 6px;
+    }
+
+    .stat-badge strong {
+      color: var(--text);
+    }
+
+    .stat-badge.ping strong {
+      color: #34d399;
+    }
+
+    /* ================= PALCO PRINCIPAL DE VÍDEO ================= */
+    .stage-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #0f1420 0%, #05070b 100%);
+    }
+
+    .video-viewport {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #main-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
+
+    /* Card Central Quando Ninguém Está Sendo Assistido */
+    .empty-stage {
+      text-align: center;
+      max-width: 500px;
+      padding: 34px;
+      background: rgba(17, 21, 31, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: rgba(99, 102, 241, 0.14);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      margin: 0 auto 16px;
+    }
+
+    .empty-stage h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .empty-stage p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+
+    .streamers-quick-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    /* ================= DOCK INFERIOR FLUTUANTE ================= */
+    .bottom-dock-wrap {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      max-width: 96vw;
+    }
+
+    /* Popover de Qualidade e Áudio */
+    .settings-popover {
+      width: 380px;
+      max-width: 92vw;
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .settings-popover.open {
+      display: flex;
+    }
+
+    .popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
     }
 
     .preset-pill {
-      padding: 6px 8px;
-      border-radius: 7px;
+      padding: 7px 6px;
+      border-radius: 9px;
       border: 1px solid var(--border);
       background: var(--bg-base);
       color: var(--text-muted);
-      font-size: 11.5px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       cursor: pointer;
       text-align: center;
       transition: all 0.15s;
@@ -412,175 +465,118 @@
     }
 
     .preset-pill.active {
-      background: rgba(88, 101, 242, 0.2);
+      background: rgba(99, 102, 241, 0.25);
       color: #fff;
       border-color: var(--accent);
     }
 
-    /* Medidor de Áudio (VU Meter) */
-    .vu-meter-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 6px;
-      padding: 7px 10px;
-      border-radius: 8px;
-      background: var(--bg-base);
-      border: 1px solid var(--border);
-    }
-
-    .vu-bar-bg {
-      flex: 1;
-      height: 7px;
-      border-radius: 4px;
-      background: #1e2636;
-      overflow: hidden;
-    }
-
-    .vu-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #23a55a, #f0b232, #f23f43);
-      transition: width 0.08s linear;
-    }
-
-    /* Palco Central (Vídeo) */
-    .stage-center {
-      flex: 1;
+    .field-row {
       display: flex;
       flex-direction: column;
-      background: #07090d;
-      position: relative;
-      min-width: 0;
+      gap: 4px;
     }
 
-    .stage-topbar {
-      height: 52px;
-      padding: 0 16px;
-      background: rgba(19, 24, 34, 0.92);
-      border-bottom: 1px solid var(--border);
+    .field-row label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      z-index: 10;
     }
 
-    .stage-stream-title {
+    .select-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-base);
+      color: var(--text);
+      font-size: 12.5px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Barra Principal do Dock */
+    .bottom-dock {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      min-width: 0;
-    }
-
-    .telemetry-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 16px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
       flex-wrap: wrap;
-    }
-
-    .stat-chip {
-      padding: 4px 9px;
-      border-radius: 6px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      font-size: 11.5px;
-      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      color: var(--text-muted);
-    }
-
-    .stat-chip strong {
-      color: var(--text);
-    }
-
-    .stat-chip.good strong {
-      color: #4ade80;
-    }
-
-    .video-viewport {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      overflow: hidden;
-      background: #05070a;
     }
 
-    #main-video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: none;
-      background: #000;
+    .dock-divider {
+      width: 1px;
+      height: 26px;
+      background: var(--border);
     }
 
-    .empty-stage {
-      text-align: center;
-      max-width: 460px;
-      padding: 30px;
-      color: var(--text-muted);
-    }
-
-    .empty-stage-icon {
-      font-size: 48px;
-      margin-bottom: 14px;
-      opacity: 0.8;
-    }
-
-    .empty-stage h2 {
-      color: var(--text);
-      font-size: 19px;
-      margin-bottom: 8px;
-    }
-
-    .empty-stage p {
-      font-size: 13.5px;
-      line-height: 1.5;
-      margin-bottom: 18px;
-    }
-
-    /* Barra Inferior do Player */
-    .stage-bottombar {
-      height: 58px;
-      padding: 0 18px;
-      background: var(--bg-panel);
-      border-top: 1px solid var(--border);
+    .volume-box {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-    }
-
-    .volume-control {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      gap: 7px;
+      padding: 0 4px;
     }
 
     .volume-slider {
-      width: 110px;
+      width: 90px;
       accent-color: var(--accent);
       cursor: pointer;
     }
 
-    /* Chat Lateral Direito */
-    .sidebar-right {
-      width: 280px;
-      background: var(--bg-panel);
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      transition: margin-right 0.2s ease;
+    .vu-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
     }
 
-    body.theater-mode .sidebar-right {
-      margin-right: -280px;
+    .vu-track {
+      width: 48px;
+      height: 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      overflow: hidden;
+    }
+
+    .vu-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      transition: width 0.08s linear;
+    }
+
+    /* ================= GAVETA LATERAL DE CHAT ================= */
+    .chat-drawer {
+      width: 310px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      display: none;
+      flex-direction: column;
+      z-index: 35;
+    }
+
+    .chat-drawer.open {
+      display: flex;
+    }
+
+    .chat-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 14px;
     }
 
     .chat-messages {
@@ -589,78 +585,77 @@
       padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       user-select: text;
     }
 
     .chat-msg {
-      background: var(--bg-card);
+      background: var(--bg-elevated);
       padding: 8px 11px;
-      border-radius: 10px;
+      border-radius: 11px;
       font-size: 13px;
       line-height: 1.4;
       word-break: break-word;
     }
 
-    .chat-msg-header {
+    .chat-msg-head {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 3px;
       font-size: 11px;
+      margin-bottom: 3px;
     }
 
-    .chat-msg-author {
+    .chat-author {
       font-weight: 700;
-      color: #8ea1ff;
+      color: #818cf8;
     }
 
-    .chat-msg-time {
+    .chat-time {
       color: var(--text-muted);
     }
 
-    .chat-input-area {
+    .chat-form {
       padding: 10px;
       border-top: 1px solid var(--border);
       display: flex;
       gap: 6px;
     }
 
-    .https-banner {
-      background: rgba(240, 178, 50, 0.14);
-      border: 1px solid var(--warning);
-      color: #fde68a;
-      padding: 9px 12px;
-      border-radius: 8px;
-      font-size: 11.5px;
-      line-height: 1.4;
-      margin-bottom: 10px;
+    .unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
       display: none;
     }
 
-    @media (max-width: 960px) {
-      .sidebar-right {
-        display: none;
-      }
-      .sidebar-left {
-        width: 260px;
-      }
+    .https-alert {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      color: #fde68a;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      gap: 10px;
     }
   </style>
 </head>
 <body>
 
-  <!-- ================= TELA DE ENTRADA (NICK + SENHA) ================= -->
+  <!-- ================= MODAL DE ENTRADA (SÓ APARECE SE NÃO ESTIVER SALVO NO LOCALSTORAGE) ================= -->
   <div id="login-screen">
-    <div class="login-box">
-      <div class="login-logo">
-        <div class="login-logo-icon">🖥️</div>
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">🖥️</div>
         <div>
-          <div class="login-title">TelaP2P • TV Box</div>
-          <div style="font-size:12px;color:#4ade80;font-weight:600;">⚡ WebRTC Direto • Latência Zero</div>
+          <div style="font-size:20px;font-weight:800;">TelaP2P</div>
+          <div style="font-size:12px;color:#34d399;font-weight:600;">⚡ Acesso Automático Ativado</div>
         </div>
       </div>
-      <p class="login-subtitle">
-        Compartilhamento de tela P2P com seletor de áudio isolado e controle de qualidade em tempo real (0% de peso na TV Box).
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.45;">
+        Digite seu apelido e a senha da sala apenas na 1ª vez. Eles ficam salvos no seu navegador para você entrar direto!
       </p>
 
       <form id="login-form">
@@ -671,265 +666,241 @@
 
         <div class="form-group">
           <label for="input-pass">Senha da Sala</label>
-          <input type="password" id="input-pass" class="form-input" placeholder="Digite a senha da sala" required />
+          <input type="password" id="input-pass" class="form-input" placeholder="Senha da sala (ex: 123456)" required />
         </div>
 
-        <button type="submit" id="btn-join" class="btn btn-full">
-          🚀 Entrar na Sala
+        <button type="submit" id="btn-join" class="btn" style="width:100%;padding:13px;font-size:15px;">
+          🚀 Entrar e Salvar Acesso
         </button>
         <div id="login-error"></div>
       </form>
     </div>
   </div>
 
-  <!-- ================= SALA PRINCIPAL ================= -->
-  <div id="app-container">
+  <!-- ================= BARRA SUPERIOR COMPACTA ================= -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-pill">
+        <span class="status-dot" id="conn-dot"></span>
+        <span>TelaP2P</span>
+      </div>
 
-    <!-- COLUNA ESQUERDA: CONTROLES DE TRANSMISSÃO + LISTA DE AMIGOS -->
-    <aside class="sidebar-left">
-      <div class="brand-header">
-        <div class="brand-title">
-          <span class="status-dot" id="conn-dot"></span>
-          <span>Sala TelaP2P</span>
-        </div>
-        <button id="btn-logout" class="btn btn-ghost" style="padding:5px 9px;font-size:11.5px;" title="Sair da sala">
-          Sair
+      <!-- Pílulas Horizontais dos Amigos na Sala -->
+      <div class="users-strip" id="users-list"></div>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Telemetria Ao Vivo -->
+      <div class="telemetry-group" id="telemetry-bar">
+        <span class="stat-badge ping">Ping: <strong id="stat-ping">--</strong></span>
+        <span class="stat-badge">FPS: <strong id="stat-fps">--</strong></span>
+        <span class="stat-badge"><strong id="stat-res">--</strong></span>
+        <span class="stat-badge"><strong id="stat-bitrate">--</strong></span>
+        <button id="btn-sync-zero" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;border-radius:7px;" title="Zerar atraso de vídeo">
+          ⚡ Sync
         </button>
       </div>
 
-      <!-- BLOCO DE TRANSMISSÃO & QUALIDADE -->
-      <div class="section-block">
-        <div class="section-title">
-          <span>🎛️ Qualidade & Áudio da Sua Live</span>
-          <span id="live-indicator-self" style="color:#4ade80;display:none;">● TRANSMITINDO</span>
+      <button id="btn-toggle-chat" class="btn btn-ghost" style="padding:7px 12px;font-size:12.5px;">
+        💬 Chat <span class="unread-dot" id="chat-unread-dot"></span>
+      </button>
+
+      <button id="btn-profile" class="btn btn-ghost" style="padding:7px 11px;font-size:12.5px;" title="Clique para mudar seu apelido ou trocar senha">
+        👤 <span id="my-nick-label">...</span> ✏️
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= ÁREA CENTRAL (PALCO + CHAT RETRÁTIL) ================= -->
+  <div class="stage-wrapper">
+    <main class="video-viewport" id="video-viewport">
+      <video id="main-video" autoplay playsinline></video>
+
+      <!-- Estado Vazio com Botões Rápidos -->
+      <div class="empty-stage" id="empty-stage">
+        <div class="empty-icon">📡</div>
+        <h2 id="empty-title">Sala Pronta • Zero Latência</h2>
+        <p id="empty-subtitle">
+          Clique em <strong>"🖥️ Compartilhar Minha Tela"</strong> na barra abaixo ou clique em um amigo <span class="live-pill" style="animation:none;">🔴 AO VIVO</span> no topo para assistir.
+        </p>
+
+        <div id="https-warning" class="https-alert">
+          <span>⚠️ Para transmitir sua tela, use o link HTTPS seguro:</span>
+          <a id="https-link-btn" href="#" class="btn" style="padding:5px 10px;font-size:11.5px;text-decoration:none;background:var(--warning);color:#000;">
+            🔒 Abrir HTTPS
+          </a>
         </div>
 
-        <div id="https-warning" class="https-banner">
-          ⚠️ Para <strong>transmitir</strong> sua tela, o navegador exige que você abra pelo link <strong>HTTPS</strong> do Tailscale Funnel (porta <code>:8443/tela/</code>). Assistir funciona normalmente aqui!
-          <div id="https-link-wrap" style="margin-top:6px;display:none;">
-            <a id="https-link-btn" href="#" class="btn btn-warning" style="padding:5px 10px;font-size:11px;text-decoration:none;width:100%;">
-              🔒 Abrir Link HTTPS Seguro
-            </a>
+        <div class="streamers-quick-grid" id="live-quick-buttons"></div>
+      </div>
+
+      <!-- ================= DOCK FLUTUANTE INFERIOR ================= -->
+      <div class="bottom-dock-wrap">
+
+        <!-- Popover de Configuração de Qualidade e Origem de Áudio -->
+        <div class="settings-popover" id="settings-popover">
+          <div class="popover-header">
+            <span>🎛️ Qualidade da Live & Filtro de Áudio</span>
+            <button type="button" id="btn-close-settings" class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">✕</button>
           </div>
-        </div>
 
-        <!-- Presets Rápidos -->
-        <div class="preset-pills">
-          <button type="button" class="preset-pill" data-preset="eco">🪶 Leve (480p)</button>
-          <button type="button" class="preset-pill active" data-preset="balanced">⚖️ 720p 30fps</button>
-          <button type="button" class="preset-pill" data-preset="gamer">🎮 720p 60fps</button>
-          <button type="button" class="preset-pill" data-preset="ultra">🔥 1080p 60fps</button>
-        </div>
+          <div class="preset-grid">
+            <button type="button" class="preset-pill" data-preset="eco">🪶 480p 24</button>
+            <button type="button" class="preset-pill active" data-preset="balanced">⚖️ 720p 30</button>
+            <button type="button" class="preset-pill" data-preset="gamer">🎮 720p 60</button>
+            <button type="button" class="preset-pill" data-preset="ultra">🔥 1080p 60</button>
+          </div>
 
-        <div class="control-grid" style="margin-top:8px;">
-          <div class="control-row">
-            <label>
-              <span>🔊 Origem do Áudio Compartilhado</span>
-            </label>
-            <select id="select-audio-mode" class="select-input" title="Isola o som apenas do jogo/janela ou aba para não dar eco na voz dos amigos">
+          <div class="field-row">
+            <label><span>🔊 De onde pegar o áudio? (Evitar Eco do Discord)</span></label>
+            <select id="select-audio-mode" class="select-input">
               <option value="window_or_tab" selected>🎮 Só Som do Jogo/Janela ou Aba (Sem Eco da Call)</option>
-              <option value="custom_device">🎛️ Escolher Dispositivo / Canal de Áudio...</option>
+              <option value="custom_device">🎛️ Escolher Canal / Dispositivo de Áudio...</option>
               <option value="system_all">🔊 Som do Windows Inteiro (Inclui tudo)</option>
               <option value="none">🔇 Sem Áudio (100% Mudo)</option>
             </select>
           </div>
 
-          <div class="control-row" id="custom-audio-device-row" style="display:none;">
+          <div class="field-row" id="custom-audio-device-row" style="display:none;">
             <label>
-              <span>🎙️ Canal / Dispositivo de Áudio</span>
-              <a href="#" id="btn-refresh-devices" style="color:var(--accent);text-decoration:none;font-size:10.5px;">🔄 Atualizar</a>
+              <span>🎙️ Dispositivo / Cabo Virtual</span>
+              <a href="#" id="btn-refresh-devices" style="color:var(--accent);text-decoration:none;">🔄 Atualizar</a>
             </label>
             <select id="select-audio-device" class="select-input">
-              <option value="">Carregando dispositivos de áudio...</option>
+              <option value="">Carregando dispositivos...</option>
             </select>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="control-row">
+            <div class="field-row">
               <label><span>📐 Resolução</span></label>
               <select id="select-res" class="select-input">
-                <option value="480">480p (Econômico)</option>
+                <option value="480">480p (Leve)</option>
                 <option value="720" selected>720p (HD)</option>
                 <option value="1080">1080p (Full HD)</option>
                 <option value="1440">Nativo / 2K</option>
               </select>
             </div>
 
-            <div class="control-row">
-              <label><span>🎞️ Taxa de Quadros</span></label>
+            <div class="field-row">
+              <label><span>🎞️ Quadros (FPS)</span></label>
               <select id="select-fps" class="select-input">
                 <option value="15">15 FPS (Texto)</option>
                 <option value="24">24 FPS (Filme)</option>
                 <option value="30" selected>30 FPS (Padrão)</option>
-                <option value="60">60 FPS (Jogos)</option>
+                <option value="60">60 FPS (Liso)</option>
               </select>
             </div>
           </div>
 
-          <div class="control-row">
-            <label>
-              <span>🚀 Limite de Bitrate (Rede/CPU)</span>
-              <span id="bitrate-label">2.5 Mbps</span>
-            </label>
-            <select id="select-bitrate" class="select-input">
-              <option value="900000">0.9 Mbps (Ultra Econômico)</option>
-              <option value="1500000">1.5 Mbps (Leve)</option>
-              <option value="2500000" selected>2.5 Mbps (Ideal 720p)</option>
-              <option value="4500000">4.5 Mbps (Jogos 60 FPS)</option>
-              <option value="7000000">7.0 Mbps (Ultra 1080p60)</option>
-              <option value="10000000">10.0 Mbps (Qualidade Bruta)</option>
-            </select>
-          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field-row">
+              <label><span>🚀 Bitrate Máx.</span></label>
+              <select id="select-bitrate" class="select-input">
+                <option value="900000">0.9 Mbps</option>
+                <option value="1500000">1.5 Mbps</option>
+                <option value="2500000" selected>2.5 Mbps</option>
+                <option value="4500000">4.5 Mbps</option>
+                <option value="7000000">7.0 Mbps</option>
+                <option value="10000000">10.0 Mbps</option>
+              </select>
+            </div>
 
-          <div class="control-row">
-            <label><span>🎯 Otimização de Imagem</span></label>
-            <select id="select-hint" class="select-input">
-              <option value="motion" selected>⚡ Zero Atraso / Movimento (Jogos e Vídeos)</option>
-              <option value="detail">📄 Nitidez de Texto (Código e Leitura)</option>
-            </select>
+            <div class="field-row">
+              <label><span>🎯 Foco</span></label>
+              <select id="select-hint" class="select-input">
+                <option value="motion" selected>⚡ Fluidez (Jogo)</option>
+                <option value="detail">📄 Nitidez (Texto)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Botões de Iniciar / Parar / Mutar Áudio da Live -->
-        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
-          <button id="btn-share" class="btn btn-success btn-full">
+        <!-- Barra Principal do Dock -->
+        <div class="bottom-dock">
+          <!-- Controle de Volume com Boost 200% -->
+          <div class="volume-box" title="Volume da transmissão que você está assistindo (até 200% Boost)">
+            <button id="btn-mute-watch" class="btn btn-ghost" style="padding:7px 10px;">🔊</button>
+            <input type="range" id="slider-volume" class="volume-slider" min="0" max="200" value="100" />
+            <span id="label-volume" style="font-size:11.5px;color:var(--text-muted);min-width:36px;">100%</span>
+          </div>
+
+          <div class="dock-divider"></div>
+
+          <!-- Botão de Iniciar Transmissão -->
+          <button id="btn-share" class="btn btn-success" style="padding:10px 18px;font-size:14px;">
             🖥️ Compartilhar Minha Tela
           </button>
 
-          <div id="live-self-controls" style="display:none;flex-direction:column;gap:6px;">
-            <div style="display:flex;gap:6px;">
-              <button id="btn-mute-self-audio" class="btn btn-ghost" style="flex:1;padding:9px;font-size:12.5px;">
-                🔊 Áudio Live: ON
-              </button>
-              <button id="btn-switch-source" class="btn btn-ghost" style="padding:9px 11px;font-size:12.5px;" title="Trocar janela ou aba compartilhada">
-                🔄 Trocar Tela
-              </button>
+          <!-- Controles Quando Você Está Transmitindo -->
+          <div id="live-self-controls" style="display:none;align-items:center;gap:8px;">
+            <button id="btn-mute-self-audio" class="btn btn-success" style="padding:8px 12px;font-size:12.5px;">
+              🔊 Áudio Live: ON
+            </button>
+            <div class="vu-pill" title="Medidor do som enviado na sua live">
+              <div class="vu-track"><div class="vu-fill" id="vu-bar"></div></div>
             </div>
-
-            <div class="vu-meter-wrap" title="Nível do áudio que sua tela está enviando agora">
-              <span style="font-size:11px;color:var(--text-muted);width:62px;" id="vu-status-text">Áudio:</span>
-              <div class="vu-bar-bg">
-                <div class="vu-bar-fill" id="vu-bar"></div>
-              </div>
-            </div>
-
-            <button id="btn-stop-share" class="btn btn-danger btn-full" style="padding:9px;">
-              ⏹️ Encerrar Transmissão
+            <button id="btn-switch-source" class="btn btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Escolher outra janela ou aba">
+              🔄 Trocar Tela
+            </button>
+            <button id="btn-stop-share" class="btn btn-danger" style="padding:8px 14px;font-size:12.5px;">
+              ⏹️ Parar
             </button>
           </div>
-        </div>
-      </div>
 
-      <!-- LISTA DE PARTICIPANTES E TRANSMISSÕES -->
-      <div class="section-title" style="padding:12px 16px 0 16px;margin-bottom:4px;">
-        <span>👥 Na Sala (<span id="user-count">0</span>)</span>
-        <span style="font-size:10px;color:var(--text-muted);">Clique em 🔴 para assistir</span>
-      </div>
-
-      <div class="users-list" id="users-list"></div>
-    </aside>
-
-    <!-- PALCO CENTRAL DE VÍDEO -->
-    <main class="stage-center">
-      <header class="stage-topbar">
-        <div class="stage-stream-title">
-          <button id="btn-toggle-theater" class="btn btn-ghost" style="padding:6px 10px;font-size:12px;" title="Modo Teatro (Esconder painéis laterais)">
-            ↔️ Modo Teatro
+          <!-- Botão de Abrir Popover de Qualidade e Áudio -->
+          <button id="btn-open-settings" class="btn btn-ghost" style="padding:9px 13px;font-size:12.5px;" title="Escolher qualidade, FPS e origem do áudio">
+            ⚙️ <span id="settings-summary-label">720p • 30 FPS</span>
           </button>
-          <span id="watching-title">Nenhuma transmissão selecionada</span>
-        </div>
 
-        <div class="telemetry-bar" id="telemetry-bar" style="display:none;">
-          <div class="stat-chip good">Ping: <strong id="stat-ping">-- ms</strong></div>
-          <div class="stat-chip">FPS: <strong id="stat-fps">--</strong></div>
-          <div class="stat-chip">Res: <strong id="stat-res">--</strong></div>
-          <div class="stat-chip">Bitrate: <strong id="stat-bitrate">-- Mbps</strong></div>
-          <button id="btn-sync-zero" class="btn btn-ghost" style="padding:4px 9px;font-size:11.5px;" title="Pular para o último milissegundo ao vivo e zerar qualquer buffer">
-            ⚡ Zerar Delay
+          <div class="dock-divider"></div>
+
+          <!-- Controles de Visualização -->
+          <button id="btn-stop-watching" class="btn btn-ghost" style="display:none;padding:8px 12px;font-size:12.5px;">
+            👁️ Fechar Vídeo
           </button>
-        </div>
-      </header>
-
-      <div class="video-viewport" id="video-viewport">
-        <video id="main-video" autoplay playsinline></video>
-
-        <div class="empty-stage" id="empty-stage">
-          <div class="empty-stage-icon">📡</div>
-          <h2>Pronto para Compartilhar ou Assistir</h2>
-          <p>
-            Clique em <strong>"Compartilhar Minha Tela"</strong> à esquerda ou clique no nome de um amigo que esteja com o selo <span class="live-badge" style="animation:none;">🔴 AO VIVO</span> para assistir sem latência.
-          </p>
-          <div style="font-size:12px;color:#8b98b1;background:rgba(255,255,255,0.03);padding:12px;border-radius:10px;border:1px solid var(--border);text-align:left;">
-            💡 <strong>Dica para não vazar áudios indesejados:</strong><br/>
-            • Escolha <strong>"🎯 Só Áudio de Aba"</strong> e selecione a aba do navegador (ex: YouTube/Filme). O som do seu Windows/WhatsApp ficará 100% isolado!<br/>
-            • Ou use o botão <strong>"🔊 Áudio Live: ON/OFF"</strong> a qualquer momento para mutar só o som da sua tela sem fechar o vídeo.
-          </div>
-        </div>
-      </div>
-
-      <footer class="stage-bottombar">
-        <div class="volume-control">
-          <button id="btn-mute-watch" class="btn btn-ghost" style="padding:6px 10px;font-size:13px;">🔊</button>
-          <input type="range" id="slider-volume" class="volume-slider" min="0" max="200" value="100" title="Volume da transmissão (até 200% com Boost)" />
-          <span id="label-volume" style="font-size:12px;color:var(--text-muted);min-width:42px;">100%</span>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button id="btn-stop-watching" class="btn btn-ghost" style="display:none;padding:7px 12px;font-size:12.5px;">
-            👁️ Parar de Assistir
-          </button>
-          <button id="btn-pip" class="btn btn-ghost" style="padding:7px 12px;font-size:12.5px;" title="Janela Flutuante (Picture-in-Picture)">
+          <button id="btn-pip" class="btn btn-ghost" style="padding:8px 11px;font-size:12.5px;" title="Picture-in-Picture (Janela Flutuante)">
             🖼️ PiP
           </button>
-          <button id="btn-fullscreen" class="btn btn-ghost" style="padding:7px 12px;font-size:12.5px;">
+          <button id="btn-fullscreen" class="btn btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Tela Cheia">
             ⛶ Tela Cheia
           </button>
         </div>
-      </footer>
+      </div>
     </main>
 
-    <!-- COLUNA DIREITA: CHAT RÁPIDO -->
-    <aside class="sidebar-right">
-      <div class="brand-header">
-        <div class="brand-title">💬 Chat da Sala</div>
+    <!-- Gaveta Retrátil de Chat -->
+    <aside class="chat-drawer" id="chat-drawer">
+      <div class="chat-header">
+        <span>💬 Chat da Sala</span>
+        <button id="btn-close-chat" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">✕</button>
       </div>
       <div class="chat-messages" id="chat-messages"></div>
-      <form class="chat-input-area" id="chat-form">
-        <input type="text" id="chat-input" class="form-input" placeholder="Enviar mensagem..." maxlength="400" autocomplete="off" style="padding:9px 11px;font-size:13px;" />
+      <form class="chat-form" id="chat-form">
+        <input type="text" id="chat-input" class="form-input" placeholder="Mensagem..." maxlength="400" autocomplete="off" style="padding:9px 11px;font-size:13px;" />
         <button type="submit" class="btn" style="padding:9px 13px;">➤</button>
       </form>
     </aside>
-
   </div>
 
   <script>
     // =========================================================================
-    // CONFIGURAÇÃO WEBRTC P2P ULTRA-LOW LATENCY
+    // CONFIGURAÇÃO WEBRTC P2P ULTRA-LOW LATENCY (SERVIDORES STUN RÁPIDOS)
     // =========================================================================
     const RTC_CONFIG = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun.cloudflare.com:3478" },
-        {
-          urls: [
-            "turn:openrelay.metered.ca:80",
-            "turn:openrelay.metered.ca:80?transport=tcp",
-            "turn:openrelay.metered.ca:443",
-            "turns:openrelay.metered.ca:443?transport=tcp"
-          ],
-          username: "openrelayproject",
-          credential: "openrelayproject"
-        }
+        { urls: "stun:stun.cloudflare.com:3478" }
       ],
       bundlePolicy: "max-bundle",
       rtcpMuxPolicy: "require"
     };
 
-    // Estado Global
+    // Estado Global (Com Auto-Login salvo no localStorage!)
     let myClientId = null;
     let myNick = localStorage.getItem("tela_nick") || "";
-    let roomPassword = localStorage.getItem("tela_pass") || "";
+    let roomPassword = localStorage.getItem("tela_pass") || "123456";
     let eventSource = null;
     let heartbeatTimer = null;
     let statsTimer = null;
@@ -938,13 +909,9 @@
     let localStream = null;
     let isSelfAudioMuted = false;
 
-    // Mapa de conexões enviando minha tela para espectadores: viewerId -> { pc, iceQueue }
     const senderConnections = new Map();
-
-    // Conexão assistindo a tela de alguém: { streamerId, streamerNick, pc, iceQueue }
     let activeViewerState = null;
 
-    // Web Audio API para Boost de Volume (até 200%) e VU Meter
     let watchAudioCtx = null;
     let watchGainNode = null;
     let watchAudioSource = null;
@@ -959,12 +926,12 @@
     const inputPass = document.getElementById("input-pass");
     const loginError = document.getElementById("login-error");
     const btnJoin = document.getElementById("btn-join");
+    const myNickLabel = document.getElementById("my-nick-label");
 
     const usersListEl = document.getElementById("users-list");
-    const userCountEl = document.getElementById("user-count");
+    const liveQuickButtons = document.getElementById("live-quick-buttons");
     const mainVideo = document.getElementById("main-video");
     const emptyStage = document.getElementById("empty-stage");
-    const watchingTitle = document.getElementById("watching-title");
     const telemetryBar = document.getElementById("telemetry-bar");
 
     const selectAudioMode = document.getElementById("select-audio-mode");
@@ -972,22 +939,45 @@
     const selectFps = document.getElementById("select-fps");
     const selectBitrate = document.getElementById("select-bitrate");
     const selectHint = document.getElementById("select-hint");
-    const bitrateLabel = document.getElementById("bitrate-label");
+    const settingsSummaryLabel = document.getElementById("settings-summary-label");
 
     const btnShare = document.getElementById("btn-share");
     const liveSelfControls = document.getElementById("live-self-controls");
     const btnMuteSelfAudio = document.getElementById("btn-mute-self-audio");
     const btnSwitchSource = document.getElementById("btn-switch-source");
     const btnStopShare = document.getElementById("btn-stop-share");
-    const liveIndicatorSelf = document.getElementById("live-indicator-self");
 
     if (myNick) inputNick.value = myNick;
     if (roomPassword) inputPass.value = roomPassword;
 
-    // Verifica contexto seguro (HTTPS) para captura de tela
     if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      document.getElementById("https-warning").style.display = "block";
+      document.getElementById("https-warning").style.display = "inline-flex";
     }
+
+    // =========================================================================
+    // AUTO-LOGIN DIRETO PELO LOCALSTORAGE (SEM PRECISAR LOGAR DE NOVO!)
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", async () => {
+      if (myNick && roomPassword) {
+        myNickLabel.textContent = myNick;
+        try {
+          await connectRealtimeAndJoin();
+          return; // Entrou direto sem mostrar tela de login!
+        } catch (err) {
+          console.warn("Auto-login falhou, exibindo tela de login:", err);
+        }
+      }
+      loginScreen.style.display = "flex";
+    });
+
+    // Botão no topo para editar apelido / senha quando quiser
+    document.getElementById("btn-profile").addEventListener("click", () => {
+      inputNick.value = myNick;
+      inputPass.value = roomPassword;
+      loginError.style.display = "none";
+      loginScreen.style.display = "flex";
+      inputNick.focus();
+    });
 
     // =========================================================================
     // CHAMADAS DE API PARA O POCKETBASE HOOK (/api/tela/action)
@@ -1011,29 +1001,27 @@
       return data;
     }
 
-    // =========================================================================
-    // CONEXÃO REALTIME SSE E ENTRADA NA SALA
-    // =========================================================================
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       loginError.style.display = "none";
       myNick = inputNick.value.trim() || "Amigo";
-      roomPassword = inputPass.value.trim();
+      roomPassword = inputPass.value.trim() || "123456";
 
       btnJoin.disabled = true;
-      btnJoin.textContent = "⏳ Conectando...";
+      btnJoin.textContent = "⏳ Entrando...";
 
       try {
         await connectRealtimeAndJoin();
         localStorage.setItem("tela_nick", myNick);
         localStorage.setItem("tela_pass", roomPassword);
+        myNickLabel.textContent = myNick;
         loginScreen.style.display = "none";
       } catch (err) {
-        loginError.textContent = err.message || "Falha ao entrar na sala.";
+        loginError.textContent = err.message || "Senha incorreta ou falha de conexão.";
         loginError.style.display = "block";
       } finally {
         btnJoin.disabled = false;
-        btnJoin.textContent = "🚀 Entrar na Sala";
+        btnJoin.textContent = "🚀 Entrar e Salvar Acesso";
       }
     });
 
@@ -1059,7 +1047,6 @@
             const info = JSON.parse(ev.data);
             myClientId = info.clientId;
 
-            // Mantém a conexão SSE ativa assinando o canal tela_room
             await fetch("/api/realtime", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1069,21 +1056,17 @@
               })
             });
 
-            // Valida a senha e entra na sala
             const joinData = await apiAction("join");
             joined = true;
             clearTimeout(timeout);
 
             if (joinData.httpsUrl && (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia)) {
               const btn = document.getElementById("https-link-btn");
-              const wrap = document.getElementById("https-link-wrap");
-              if (btn && wrap) {
-                btn.href = joinData.httpsUrl;
-                wrap.style.display = "block";
-              }
+              if (btn) btn.href = joinData.httpsUrl;
             }
 
-            document.getElementById("conn-dot").style.background = "#23a55a";
+            document.getElementById("conn-dot").style.background = "#10b981";
+            myNickLabel.textContent = myNick;
             renderUsers(joinData.users || []);
             renderChatHistory(joinData.chat || []);
             startHeartbeat();
@@ -1105,7 +1088,7 @@
         });
 
         es.onerror = () => {
-          document.getElementById("conn-dot").style.background = "#f0b232";
+          document.getElementById("conn-dot").style.background = "#f59e0b";
         };
       });
     }
@@ -1129,7 +1112,6 @@
         renderUsers(msg.users || []);
 
         if (msg.event) {
-          // Se a pessoa que estamos assistindo encerrou a transmissão ou saiu
           if (
             (msg.event.kind === "stop_stream" || msg.event.kind === "leave") &&
             activeViewerState &&
@@ -1138,12 +1120,10 @@
             stopWatching();
           }
 
-          // Se um espectador saiu, fecha a conexão P2P dele
           if (msg.event.kind === "leave" && senderConnections.has(msg.event.clientId)) {
             closeSenderPeer(msg.event.clientId);
           }
 
-          // Auto-assistir caso alguém comece a transmitir e nosso palco esteja vazio
           if (
             msg.event.kind === "start_stream" &&
             msg.event.clientId !== myClientId &&
@@ -1155,72 +1135,26 @@
       } else if (msg.type === "webrtc_signal") {
         handleWebRTCSignal(msg);
       } else if (msg.type === "chat_message") {
-        appendChatMessage(msg.message);
+        appendChatMessage(msg.message, true);
       }
     }
 
     // =========================================================================
-    // CAPTURA DE TELA COM SELETOR DE ÁUDIO E QUALIDADE DINÂMICA
+    // POPOVER DE CONFIGURAÇÃO DE QUALIDADE E ORIGEM DE ÁUDIO
     // =========================================================================
-    function getCaptureConstraints() {
-      const height = parseInt(selectRes.value, 10) || 720;
-      const fps = parseInt(selectFps.value, 10) || 30;
-      const width = Math.round((height * 16) / 9);
-      const audioMode = selectAudioMode.value;
+    const settingsPopover = document.getElementById("settings-popover");
+    document.getElementById("btn-open-settings").addEventListener("click", () => {
+      settingsPopover.classList.toggle("open");
+    });
+    document.getElementById("btn-close-settings").addEventListener("click", () => {
+      settingsPopover.classList.remove("open");
+    });
 
-      const videoConstraints = {
-        width: { ideal: width, max: width },
-        height: { ideal: height, max: height },
-        frameRate: { ideal: fps, max: fps },
-        cursor: "always"
-      };
-
-      if (audioMode === "none" || audioMode === "custom_device") {
-        return {
-          video: videoConstraints,
-          audio: false,
-          selfBrowserSurface: "exclude",
-          surfaceSwitching: "include"
-        };
-      }
-
-      // Opções avançadas de áudio sem filtro de voz (Hi-Fi Estéreo puro)
-      const audioConstraints = {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        channelCount: 2,
-        sampleRate: 48000,
-        suppressLocalAudioPlayback: false
-      };
-
-      const displayMediaOptions = {
-        video: videoConstraints,
-        audio: audioConstraints,
-        selfBrowserSurface: "exclude",
-        surfaceSwitching: "include"
-      };
-
-      if (audioMode === "window_or_tab") {
-        // Isola SOMENTE o áudio do processo da Janela selecionada (Jogo/App) ou Aba!
-        // Exclui o áudio global do Windows para NÃO duplicar a voz dos amigos da call (Discord/etc)!
-        displayMediaOptions.windowAudio = "window";
-        displayMediaOptions.systemAudio = "exclude";
-      } else {
-        displayMediaOptions.systemAudio = "include";
-        displayMediaOptions.windowAudio = "system";
-      }
-
-      return displayMediaOptions;
-    }
-
-    // Carrega lista de dispositivos de áudio do PC quando o usuário escolhe "Escolher Dispositivo"
     const customAudioRow = document.getElementById("custom-audio-device-row");
     const selectAudioDevice = document.getElementById("select-audio-device");
 
     async function loadCustomAudioDevices() {
       try {
-        // Pede permissão rápida de áudio para liberar os nomes reais dos dispositivos
         const temp = await navigator.mediaDevices.getUserMedia({ audio: true });
         temp.getTracks().forEach((t) => t.stop());
       } catch (_) {}
@@ -1254,9 +1188,60 @@
       loadCustomAudioDevices();
     });
 
+    function getCaptureConstraints() {
+      const height = parseInt(selectRes.value, 10) || 720;
+      const fps = parseInt(selectFps.value, 10) || 30;
+      const width = Math.round((height * 16) / 9);
+      const audioMode = selectAudioMode.value;
+
+      const videoConstraints = {
+        width: { ideal: width, max: width },
+        height: { ideal: height, max: height },
+        frameRate: { ideal: fps, max: fps },
+        cursor: "always"
+      };
+
+      if (audioMode === "none" || audioMode === "custom_device") {
+        return {
+          video: videoConstraints,
+          audio: false,
+          selfBrowserSurface: "exclude",
+          surfaceSwitching: "include"
+        };
+      }
+
+      const audioConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 2,
+        sampleRate: 48000,
+        suppressLocalAudioPlayback: false
+      };
+
+      const displayMediaOptions = {
+        video: videoConstraints,
+        audio: audioConstraints,
+        selfBrowserSurface: "exclude",
+        surfaceSwitching: "include"
+      };
+
+      if (audioMode === "window_or_tab") {
+        // Isola apenas o som do Jogo/Janela ou Aba, sem capturar a voz do Discord!
+        displayMediaOptions.windowAudio = "window";
+        displayMediaOptions.systemAudio = "exclude";
+      } else {
+        displayMediaOptions.systemAudio = "include";
+        displayMediaOptions.windowAudio = "system";
+      }
+
+      return displayMediaOptions;
+    }
+
     function getStreamInfoSummary() {
       const res = selectRes.value + "p";
       const fps = selectFps.value + " FPS";
+      settingsSummaryLabel.textContent = `${res} • ${fps}`;
       const hasAudio = localStream && localStream.getAudioTracks().length > 0;
       return {
         label: `${res} • ${fps}`,
@@ -1267,15 +1252,15 @@
 
     async function startScreenShare() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        alert("Para compartilhar a tela, abra o link com HTTPS seguro (botão amarelo à esquerda)!");
+        alert("Para compartilhar sua tela, abra pelo link HTTPS seguro!");
         return;
       }
 
       try {
+        settingsPopover.classList.remove("open");
         const options = getCaptureConstraints();
         const stream = await navigator.mediaDevices.getDisplayMedia(options);
 
-        // Se o usuário escolheu um Canal/Dispositivo de Áudio específico, anexa a trilha dele na transmissão!
         if (selectAudioMode.value === "custom_device" && selectAudioDevice.value) {
           try {
             const customAudioStream = await navigator.mediaDevices.getUserMedia({
@@ -1293,7 +1278,6 @@
           }
         }
 
-        // Se já havia uma stream anterior, limpa
         if (localStream) {
           localStream.getTracks().forEach((t) => t.stop());
         }
@@ -1310,23 +1294,20 @@
           };
         }
 
-        // Atualiza UI
         btnShare.style.display = "none";
-        liveSelfControls.style.display = "flex";
-        liveIndicatorSelf.style.display = "inline";
+        liveSelfControls.style.display = "inline-flex";
         updateSelfAudioButtonUI();
 
-        // Se já existirem espectadores conectados (no caso de "Trocar Tela"), substitui as tracks
-        for (const [viewerId, conn] of senderConnections.entries()) {
-          await replaceTracksForPeer(viewerId, conn.pc);
+        // Usa cópia estática das chaves para nunca entrar em loop ao recriar conexões!
+        const existingViewers = Array.from(senderConnections.keys());
+        for (const viewerId of existingViewers) {
+          await createSenderPeerAndOffer(viewerId);
         }
 
-        // Avisa a sala que estamos ao vivo
         await apiAction("start_stream", {
           streamInfo: getStreamInfoSummary()
         });
 
-        // Se não estamos assistindo ninguém, mostra o preview local no palco (mutado localmente para não dar eco)
         if (!activeViewerState) {
           showLocalPreview();
         }
@@ -1339,10 +1320,9 @@
 
     function showLocalPreview() {
       mainVideo.srcObject = localStream;
-      mainVideo.muted = true; // Sempre mudo para si mesmo para não duplicar o próprio som!
+      mainVideo.muted = true;
       mainVideo.style.display = "block";
       emptyStage.style.display = "none";
-      watchingTitle.innerHTML = `<span class="live-badge">🔴 SUA TELA</span> <span>Pré-visualização local (${getStreamInfoSummary().label})</span>`;
       telemetryBar.style.display = "none";
     }
 
@@ -1353,20 +1333,18 @@
       }
       stopSelfVuMeter();
 
-      for (const [viewerId] of senderConnections.entries()) {
+      for (const viewerId of Array.from(senderConnections.keys())) {
         closeSenderPeer(viewerId);
       }
       senderConnections.clear();
 
       btnShare.style.display = "inline-flex";
       liveSelfControls.style.display = "none";
-      liveIndicatorSelf.style.display = "none";
 
       if (!activeViewerState) {
         mainVideo.srcObject = null;
         mainVideo.style.display = "none";
         emptyStage.style.display = "block";
-        watchingTitle.textContent = "Nenhuma transmissão selecionada";
       }
 
       try {
@@ -1374,12 +1352,11 @@
       } catch (_) {}
     }
 
-    // Mutar / Desmutar apenas o ÁUDIO enviado na transmissão (sem parar o vídeo!)
     btnMuteSelfAudio.addEventListener("click", async () => {
       if (!localStream) return;
       const audioTracks = localStream.getAudioTracks();
       if (audioTracks.length === 0) {
-        alert("Você iniciou esta transmissão sem capturar áudio. Use '🔄 Trocar Tela' se quiser incluir áudio.");
+        alert("Esta transmissão foi iniciada sem áudio. Clique em '🔄 Trocar Tela' e marque 'Compartilhar áudio da janela/guia'.");
         return;
       }
       isSelfAudioMuted = !isSelfAudioMuted;
@@ -1396,23 +1373,19 @@
 
     function updateSelfAudioButtonUI() {
       if (!localStream || localStream.getAudioTracks().length === 0) {
-        btnMuteSelfAudio.textContent = "🔇 Sem Áudio Capturado";
+        btnMuteSelfAudio.textContent = "🔇 Sem Áudio";
         btnMuteSelfAudio.className = "btn btn-ghost";
-        document.getElementById("vu-status-text").textContent = "Sem áudio";
         return;
       }
       if (isSelfAudioMuted) {
-        btnMuteSelfAudio.textContent = "🔇 Áudio Live: MUTADO";
+        btnMuteSelfAudio.textContent = "🔇 Áudio: MUTADO";
         btnMuteSelfAudio.className = "btn btn-danger";
-        document.getElementById("vu-status-text").textContent = "Mutado";
       } else {
-        btnMuteSelfAudio.textContent = "🔊 Áudio Live: ON";
+        btnMuteSelfAudio.textContent = "🔊 Áudio: ON";
         btnMuteSelfAudio.className = "btn btn-success";
-        document.getElementById("vu-status-text").textContent = "Enviando:";
       }
     }
 
-    // Medidor Visual (VU Meter) do próprio áudio enviado
     function setupSelfVuMeter(stream) {
       stopSelfVuMeter();
       const audioTracks = stream.getAudioTracks();
@@ -1463,7 +1436,7 @@
     // =========================================================================
     function applyContentHint() {
       if (!localStream) return;
-      const hint = selectHint.value; // "motion" ou "detail"
+      const hint = selectHint.value;
       const vTrack = localStream.getVideoTracks()[0];
       if (vTrack && "contentHint" in vTrack) {
         vTrack.contentHint = hint;
@@ -1472,12 +1445,12 @@
 
     async function applyLiveQualityChanges() {
       const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
-      bitrateLabel.textContent = (bitrate / 1000000).toFixed(1) + " Mbps";
+      const height = parseInt(selectRes.value, 10) || 720;
+      const fps = parseInt(selectFps.value, 10) || 30;
+      settingsSummaryLabel.textContent = `${height}p • ${fps} FPS`;
 
       if (!localStream) return;
 
-      const height = parseInt(selectRes.value, 10) || 720;
-      const fps = parseInt(selectFps.value, 10) || 30;
       const width = Math.round((height * 16) / 9);
       const hint = selectHint.value;
 
@@ -1490,18 +1463,11 @@
             height: { ideal: height, max: height },
             frameRate: { ideal: fps, max: fps }
           });
-        } catch (err) {
-          console.warn("applyConstraints aviso:", err);
-        }
+        } catch (_) {}
       }
 
-      // Atualiza todos os encoders WebRTC ativos na hora!
       for (const [, conn] of senderConnections.entries()) {
         await tuneSenderParameters(conn.pc, bitrate, fps, hint);
-      }
-
-      if (!activeViewerState && localStream) {
-        watchingTitle.innerHTML = `<span class="live-badge">🔴 SUA TELA</span> <span>Pré-visualização local (${getStreamInfoSummary().label})</span>`;
       }
 
       try {
@@ -1523,27 +1489,23 @@
             }
             params.encodings[0].maxBitrate = maxBitrate;
             params.encodings[0].maxFramerate = maxFps;
-            // IMPORTANTE: Não usar networkPriority="high" (DSCP QoS), pois placas Intel Wireless-AC e roteadores descartam pacotes UDP grandes marcados com DSCP!
             params.degradationPreference =
               hint === "detail" ? "maintain-resolution" : "maintain-framerate";
             await sender.setParameters(params);
-          } catch (e) {
-            console.warn("Não foi possível ajustar parâmetros de vídeo:", e);
-          }
+          } catch (_) {}
         } else if (sender.track.kind === "audio") {
           try {
             const params = sender.getParameters();
             if (!params.encodings || params.encodings.length === 0) {
               params.encodings = [{}];
             }
-            params.encodings[0].maxBitrate = 160000; // 160 kbps Hi-Fi Audio
+            params.encodings[0].maxBitrate = 160000;
             await sender.setParameters(params);
           } catch (_) {}
         }
       }
     }
 
-    // Presets de 1 clique
     const PRESETS = {
       eco: { res: "480", fps: "24", bitrate: "900000", hint: "motion" },
       balanced: { res: "720", fps: "30", bitrate: "2500000", hint: "motion" },
@@ -1578,10 +1540,8 @@
     btnStopShare.addEventListener("click", stopScreenShare);
 
     // =========================================================================
-    // MOTOR P2P: TRANSMISSOR (QUEM COMPARTILHA) <-> ESPECTADOR (QUEM ASSISTE)
+    // MOTOR P2P COM EMBEDDED ICE (SEM RACE CONDITION) + INVERSÃO AUTOMÁTICA DE PAPEL
     // =========================================================================
-
-    // Otimiza SDP para áudio estéreo de alta fidelidade e baixa latência
     function optimizeSdpForLowLatency(sdp) {
       if (!sdp) return sdp;
       return sdp.replace(
@@ -1590,8 +1550,26 @@
       );
     }
 
-    // Aguarda até maxWaitMs para embutir os candidatos STUN/TURN direto no SDP (evita corrida de requisições HTTP)
-    function waitForIceGathering(pc, maxWaitMs = 600) {
+    function preferVp8Codec(pc) {
+      try {
+        if (RTCRtpSender.getCapabilities) {
+          const caps = RTCRtpSender.getCapabilities("video");
+          if (caps && caps.codecs) {
+            const vp8 = caps.codecs.filter((c) => c.mimeType.toLowerCase() === "video/vp8");
+            const rest = caps.codecs.filter((c) => c.mimeType.toLowerCase() !== "video/vp8");
+            if (vp8.length > 0) {
+              pc.getTransceivers().forEach((t) => {
+                if (t.setCodecPreferences) {
+                  t.setCodecPreferences([...vp8, ...rest]);
+                }
+              });
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    function waitForIceGathering(pc, maxWaitMs = 450) {
       return new Promise((resolve) => {
         if (pc.iceGatheringState === "complete") {
           resolve();
@@ -1612,20 +1590,15 @@
     }
 
     async function handleWebRTCSignal(msg) {
-      const { fromId, fromNick, signalType, signalData } = msg;
+      const { fromId, signalType, signalData } = msg;
 
-      // 1. Espectador pediu para assistir nossa transmissão (Modo 1: Streamer é Offerer)
-      if (signalType === "watch_request") {
-        if (!localStream) return;
-        await createSenderPeerAndOffer(fromId);
-      }
-
-      // 1B. Fallback Automático Anti-CGNAT: Espectador enviou Offer (Modo 2: Viewer é Offerer, Streamer é Answerer!)
-      else if (signalType === "viewer_offer") {
+      // 1. Espectador enviou Offer (Viewer = Offerer -> Streamer = Answerer: Fura NAT/Firewall!)
+      if (signalType === "viewer_offer") {
         if (!localStream) return;
         closeSenderPeer(fromId);
+
         const pc = new RTCPeerConnection(RTC_CONFIG);
-        const connObj = { pc, iceQueue: [], remoteDescSet: true };
+        const connObj = { pc, iceQueue: [], remoteDescSet: true, initialSdpSent: false };
         senderConnections.set(fromId, connObj);
 
         pc.onicecandidate = (ev) => {
@@ -1638,15 +1611,22 @@
           }
         };
 
+        pc.oniceconnectionstatechange = () => {
+          apiAction("diag_log", {
+            info: { role: "streamer_ans", viewerId: fromId, iceState: pc.iceConnectionState }
+          }).catch(() => {});
+        };
+
         await pc.setRemoteDescription(new RTCSessionDescription(signalData));
         localStream.getTracks().forEach((track) => {
           pc.addTrack(track, localStream);
         });
+        preferVp8Codec(pc);
 
         const answer = await pc.createAnswer();
         answer.sdp = optimizeSdpForLowLatency(answer.sdp);
         await pc.setLocalDescription(answer);
-        await waitForIceGathering(pc, 600);
+        await waitForIceGathering(pc, 450);
         connObj.initialSdpSent = true;
 
         const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
@@ -1660,7 +1640,7 @@
         });
       }
 
-      // 1C. Espectador recebeu Answer do Streamer (Modo 2)
+      // 2. Espectador recebeu a Answer do Streamer
       else if (signalType === "streamer_answer") {
         if (!activeViewerState || activeViewerState.streamerId !== fromId) return;
         const pc = activeViewerState.pc;
@@ -1672,14 +1652,17 @@
         activeViewerState.iceQueue = [];
       }
 
-      // 2. Recebemos uma Offer do transmissor que queremos assistir
+      // 3. Fallback: Streamer cria Offer se solicitado via watch_request
+      else if (signalType === "watch_request") {
+        if (!localStream) return;
+        await createSenderPeerAndOffer(fromId);
+      }
+
       else if (signalType === "offer") {
         if (!activeViewerState || activeViewerState.streamerId !== fromId) return;
         const pc = activeViewerState.pc;
         await pc.setRemoteDescription(new RTCSessionDescription(signalData));
         activeViewerState.remoteDescSet = true;
-
-        // Processa ICE candidates enfileirados
         for (const cand of activeViewerState.iceQueue) {
           await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
         }
@@ -1688,7 +1671,7 @@
         const answer = await pc.createAnswer();
         answer.sdp = optimizeSdpForLowLatency(answer.sdp);
         await pc.setLocalDescription(answer);
-        await waitForIceGathering(pc, 600);
+        await waitForIceGathering(pc, 450);
         activeViewerState.initialSdpSent = true;
 
         await apiAction("webrtc_signal", {
@@ -1698,27 +1681,19 @@
         });
       }
 
-      // 3. Transmissor recebeu a Answer do espectador
       else if (signalType === "answer") {
         const conn = senderConnections.get(fromId);
         if (!conn) return;
         await conn.pc.setRemoteDescription(new RTCSessionDescription(signalData));
         conn.remoteDescSet = true;
-
         for (const cand of conn.iceQueue) {
           await conn.pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
         }
         conn.iceQueue = [];
-
-        const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
-        const fps = parseInt(selectFps.value, 10) || 30;
-        await tuneSenderParameters(conn.pc, bitrate, fps, selectHint.value);
       }
 
-      // 4. Candidato ICE (de ambos os lados)
       else if (signalType === "ice" && signalData) {
-        if ( signalData.role === "from_streamer" ) {
-          // Somos o espectador
+        if (signalData.role === "from_streamer") {
           if (activeViewerState && activeViewerState.streamerId === fromId) {
             if (activeViewerState.remoteDescSet) {
               await activeViewerState.pc.addIceCandidate(new RTCIceCandidate(signalData.candidate)).catch(() => {});
@@ -1727,7 +1702,6 @@
             }
           }
         } else {
-          // Somos o transmissor
           const conn = senderConnections.get(fromId);
           if (conn) {
             if (conn.remoteDescSet) {
@@ -1739,7 +1713,6 @@
         }
       }
 
-      // 5. Espectador parou de assistir
       else if (signalType === "viewer_left") {
         closeSenderPeer(fromId);
       }
@@ -1749,30 +1722,13 @@
       closeSenderPeer(viewerId);
 
       const pc = new RTCPeerConnection(RTC_CONFIG);
-      const connObj = { pc, iceQueue: [], remoteDescSet: false };
+      const connObj = { pc, iceQueue: [], remoteDescSet: false, initialSdpSent: false };
       senderConnections.set(viewerId, connObj);
 
       localStream.getTracks().forEach((track) => {
         pc.addTrack(track, localStream);
       });
-
-      // Força preferência pelo codec VP8 para evitar travamento do encoder de hardware H.264 na Intel Iris Xe
-      try {
-        if (RTCRtpSender.getCapabilities) {
-          const caps = RTCRtpSender.getCapabilities("video");
-          if (caps && caps.codecs) {
-            const vp8Codecs = caps.codecs.filter((c) => c.mimeType.toLowerCase() === "video/vp8");
-            const otherCodecs = caps.codecs.filter((c) => c.mimeType.toLowerCase() !== "video/vp8");
-            if (vp8Codecs.length > 0) {
-              pc.getTransceivers().forEach((t) => {
-                if (t.sender && t.sender.track && t.sender.track.kind === "video" && t.setCodecPreferences) {
-                  t.setCodecPreferences([...vp8Codecs, ...otherCodecs]);
-                }
-              });
-            }
-          }
-        }
-      } catch (_) {}
+      preferVp8Codec(pc);
 
       pc.onicecandidate = (ev) => {
         if (ev.candidate && connObj.initialSdpSent) {
@@ -1784,42 +1740,10 @@
         }
       };
 
-      pc.oniceconnectionstatechange = () => {
-        apiAction("diag_log", {
-          info: { role: "streamer", viewerId, iceState: pc.iceConnectionState, connState: pc.connectionState }
-        }).catch(() => {});
-      };
-
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
-          closeSenderPeer(viewerId);
-        }
-      };
-
-      setTimeout(async () => {
-        try {
-          if (pc.connectionState === "closed") return;
-          const st = await pc.getStats();
-          let bytesSent = 0, framesEncoded = 0, pairState = "";
-          st.forEach((r) => {
-            if (r.type === "outbound-rtp" && r.kind === "video") {
-              bytesSent = r.bytesSent || 0;
-              framesEncoded = r.framesEncoded || 0;
-            }
-            if (r.type === "candidate-pair" && r.nominated) {
-              pairState = `${r.state} (bytes:${r.bytesSent})`;
-            }
-          });
-          apiAction("diag_log", {
-            info: { role: "streamer_4s", viewerId, iceState: pc.iceConnectionState, bytesSent, framesEncoded, pairState }
-          }).catch(() => {});
-        } catch (_) {}
-      }, 4000);
-
       const offer = await pc.createOffer();
       offer.sdp = optimizeSdpForLowLatency(offer.sdp);
       await pc.setLocalDescription(offer);
-      await waitForIceGathering(pc, 600);
+      await waitForIceGathering(pc, 450);
       connObj.initialSdpSent = true;
 
       const bitrate = parseInt(selectBitrate.value, 10) || 2500000;
@@ -1833,23 +1757,6 @@
       });
     }
 
-    async function replaceTracksForPeer(viewerId, pc) {
-      if (!localStream) return;
-      const vTrack = localStream.getVideoTracks()[0];
-      const aTrack = localStream.getAudioTracks()[0];
-
-      for (const sender of pc.getSenders()) {
-        if (sender.track && sender.track.kind === "video" && vTrack) {
-          await sender.replaceTrack(vTrack);
-        }
-        if (sender.track && sender.track.kind === "audio" && aTrack) {
-          await sender.replaceTrack(aTrack);
-        }
-      }
-      // Renegocia caso o usuário tenha adicionado ou removido trilha de áudio
-      await createSenderPeerAndOffer(viewerId);
-    }
-
     function closeSenderPeer(viewerId) {
       const conn = senderConnections.get(viewerId);
       if (conn) {
@@ -1859,7 +1766,7 @@
     }
 
     // =========================================================================
-    // ASSISTIR TRANSMISSÃO COM RECEIVER DE LATÊNCIA ZERO (playoutDelayHint = 0)
+    // ASSISTIR TRANSMISSÃO (VIEWER ENVIA OFFER JÁ COM STUN EMBUTIDO!)
     // =========================================================================
     async function startWatching(streamerId, streamerNick) {
       if (streamerId === myClientId) {
@@ -1879,11 +1786,11 @@
         pc,
         iceQueue: [],
         remoteDescSet: false,
+        initialSdpSent: false,
         lastBytes: 0,
         lastTimestamp: 0
       };
 
-      watchingTitle.innerHTML = `<span class="live-badge">🔴 AO VIVO</span> <span>Conectando à tela de <strong>${escapeHtml(streamerNick)}</strong>...</span>`;
       document.getElementById("btn-stop-watching").style.display = "inline-flex";
       renderUsers(roomUsers);
 
@@ -1897,25 +1804,24 @@
         }
       };
 
+      const mediaStream = new MediaStream();
       pc.ontrack = (ev) => {
-        // FORÇA LATÊNCIA ZERO NO RECEPTOR WEBRTC DO NAVEGADOR!
         if (ev.receiver) {
-          if ("playoutDelayHint" in ev.receiver) {
-            ev.receiver.playoutDelayHint = 0;
-          }
-          if ("jitterBufferTarget" in ev.receiver) {
-            ev.receiver.jitterBufferTarget = 0;
-          }
+          if ("playoutDelayHint" in ev.receiver) ev.receiver.playoutDelayHint = 0;
+          if ("jitterBufferTarget" in ev.receiver) ev.receiver.jitterBufferTarget = 0;
         }
 
-        const stream = ev.streams[0];
-        if (stream && mainVideo.srcObject !== stream) {
+        const stream = (ev.streams && ev.streams[0]) ? ev.streams[0] : mediaStream;
+        if (!ev.streams || !ev.streams[0]) {
+          mediaStream.addTrack(ev.track);
+        }
+
+        if (mainVideo.srcObject !== stream) {
           mainVideo.srcObject = stream;
           mainVideo.muted = false;
           mainVideo.style.display = "block";
           emptyStage.style.display = "none";
-          telemetryBar.style.display = "flex";
-          watchingTitle.innerHTML = `<span class="live-badge">🔴 AO VIVO</span> <span>Tela de <strong>${escapeHtml(streamerNick)}</strong></span>`;
+          telemetryBar.style.display = "inline-flex";
 
           setupWatchVolumeBoost(stream);
           mainVideo.play().catch(() => {});
@@ -1923,13 +1829,24 @@
         }
       };
 
+      // O Espectador cria a Offer com os transceivers recvonly e já embute seu IP STUN!
+      // Assim o PC de quem transmite (Jonathan) recebe o IP:porta do espectador na hora e fura o Firewall de dentro pra fora!
+      pc.addTransceiver("video", { direction: "recvonly" });
+      pc.addTransceiver("audio", { direction: "recvonly" });
+      preferVp8Codec(pc);
+
+      const vOffer = await pc.createOffer();
+      await pc.setLocalDescription(vOffer);
+      await waitForIceGathering(pc, 450);
+      activeViewerState.initialSdpSent = true;
+
       await apiAction("webrtc_signal", {
         targetId: streamerId,
-        signalType: "watch_request"
+        signalType: "viewer_offer",
+        signalData: pc.localDescription
       });
 
-      // Se em 3.5 segundos a conexão direta (Modo 1) não tiver conectado por causa de NAT/Firewall do Streamer,
-      // inverte automaticamente o papel ICE (Viewer cria o Offer -> Streamer responde Answer)!
+      // Fallback automático em 3.5s caso o modo inverso precise ser acionado
       setTimeout(async () => {
         if (!activeViewerState || activeViewerState.streamerId !== streamerId) return;
         const st = activeViewerState.pc.iceConnectionState;
@@ -1941,29 +1858,11 @@
             activeViewerState.iceQueue = [];
             activeViewerState.remoteDescSet = false;
             activeViewerState.initialSdpSent = false;
-
             pc2.ontrack = pc.ontrack;
-            pc2.onicecandidate = (ev) => {
-              if (ev.candidate && activeViewerState && activeViewerState.initialSdpSent) {
-                apiAction("webrtc_signal", {
-                  targetId: streamerId,
-                  signalType: "ice",
-                  signalData: { role: "from_viewer", candidate: ev.candidate }
-                }).catch(() => {});
-              }
-            };
-
-            pc2.addTransceiver("video", { direction: "recvonly" });
-            pc2.addTransceiver("audio", { direction: "recvonly" });
-            const vOffer = await pc2.createOffer();
-            await pc2.setLocalDescription(vOffer);
-            await waitForIceGathering(pc2, 600);
-            activeViewerState.initialSdpSent = true;
-
+            pc2.onicecandidate = pc.onicecandidate;
             await apiAction("webrtc_signal", {
               targetId: streamerId,
-              signalType: "viewer_offer",
-              signalData: pc2.localDescription
+              signalType: "watch_request"
             });
           } catch (_) {}
         }
@@ -1998,7 +1897,6 @@
         mainVideo.srcObject = null;
         mainVideo.style.display = "none";
         emptyStage.style.display = "block";
-        watchingTitle.textContent = "Nenhuma transmissão selecionada";
       }
 
       renderUsers(roomUsers);
@@ -2006,7 +1904,6 @@
 
     document.getElementById("btn-stop-watching").addEventListener("click", () => stopWatching(true));
 
-    // Botão Zerar Delay (Sincroniza buffer instantaneamente)
     document.getElementById("btn-sync-zero").addEventListener("click", () => {
       if (!activeViewerState || !mainVideo.srcObject) return;
       const receivers = activeViewerState.pc.getReceivers();
@@ -2019,7 +1916,6 @@
       }
     });
 
-    // Telemetria em Tempo Real (Ping, FPS, Resolução e Bitrate)
     function startTelemetryLoop() {
       if (statsTimer) clearInterval(statsTimer);
       statsTimer = setInterval(async () => {
@@ -2046,17 +1942,17 @@
             }
           });
 
-          document.getElementById("stat-ping").textContent = rttMs !== null ? `${rttMs} ms` : "< 5 ms";
+          document.getElementById("stat-ping").textContent = rttMs !== null ? `${rttMs}ms` : "<5ms";
           document.getElementById("stat-fps").textContent = fps !== null ? `${fps}` : "--";
           document.getElementById("stat-res").textContent =
-            width && height ? `${width}x${height}` : mainVideo.videoHeight ? `${mainVideo.videoWidth}x${mainVideo.videoHeight}` : "--";
+            width && height ? `${height}p` : mainVideo.videoHeight ? `${mainVideo.videoHeight}p` : "--";
 
           if (bytesReceived !== null && timestamp !== null) {
             if (activeViewerState.lastTimestamp > 0 && timestamp > activeViewerState.lastTimestamp) {
               const bits = (bytesReceived - activeViewerState.lastBytes) * 8;
               const secs = (timestamp - activeViewerState.lastTimestamp) / 1000;
-              const mbps = (bits / secs / 1000000).toFixed(2);
-              document.getElementById("stat-bitrate").textContent = `${mbps} Mbps`;
+              const mbps = (bits / secs / 1000000).toFixed(1);
+              document.getElementById("stat-bitrate").textContent = `${mbps}Mbps`;
             }
             activeViewerState.lastBytes = bytesReceived;
             activeViewerState.lastTimestamp = timestamp;
@@ -2086,7 +1982,6 @@
         watchGainNode = watchAudioCtx.createGain();
         watchAudioSource.connect(watchGainNode);
         watchGainNode.connect(watchAudioCtx.destination);
-        // Desativa saída direta duplicada do elemento <video> e controla 100% pelo GainNode (suporta até 200%!)
         mainVideo.muted = true;
         applyWatchVolume();
       } catch (_) {
@@ -2120,58 +2015,81 @@
     });
 
     // =========================================================================
-    // RENDERIZAÇÃO DA LISTA DE USUÁRIOS E CHAT
+    // RENDERIZAÇÃO DOS PARTICIPANTES NO TOPO + BOTÕES RÁPIDOS NO PALCO
     // =========================================================================
     function renderUsers(users) {
       roomUsers = users;
-      userCountEl.textContent = users.length;
       usersListEl.innerHTML = "";
+      liveQuickButtons.innerHTML = "";
 
       users.forEach((u) => {
         const isMe = u.clientId === myClientId;
         const isWatchingThis = activeViewerState && activeViewerState.streamerId === u.clientId;
-
-        const div = document.createElement("div");
-        div.className = "user-item" + (u.isStreaming ? " streaming" : "") + (isWatchingThis ? " watching" : "");
-
         const initials = (u.nick || "?").slice(0, 2).toUpperCase();
-        let subText = isMe ? "Você" : "Na sala";
-        if (u.isStreaming && u.streamInfo) {
-          const audioIcon = !u.streamInfo.hasAudio || u.streamInfo.audioMuted ? "🔇" : "🔊";
-          subText = `${u.streamInfo.label || "Ao vivo"} ${audioIcon}`;
+
+        const chip = document.createElement("div");
+        chip.className = "user-chip" + (u.isStreaming ? " streaming" : "") + (isWatchingThis ? " watching" : "");
+
+        let badgeHtml = "";
+        if (u.isStreaming) {
+          const audioIcon = (!u.streamInfo || !u.streamInfo.hasAudio || u.streamInfo.audioMuted) ? "🔇" : "🔊";
+          badgeHtml = `<span class="live-pill">🔴 ${isWatchingThis ? "VENDO" : "LIVE"} ${audioIcon}</span>`;
         }
 
-        div.innerHTML = `
-          <div class="user-info">
-            <div class="user-avatar">${escapeHtml(initials)}</div>
-            <div class="user-meta">
-              <div class="user-name">${escapeHtml(u.nick)} ${isMe ? '<span style="color:#8b98b1;font-size:11px;">(você)</span>' : ""}</div>
-              <div class="user-sub">${escapeHtml(subText)}</div>
-            </div>
-          </div>
-          ${u.isStreaming ? `<span class="live-badge">🔴 ${isWatchingThis ? "ASSISTINDO" : "AO VIVO"}</span>` : ""}
+        chip.innerHTML = `
+          <div class="chip-avatar">${escapeHtml(initials)}</div>
+          <span>${escapeHtml(u.nick)}${isMe ? ' <small style="color:var(--text-muted)">(você)</small>' : ""}</span>
+          ${badgeHtml}
         `;
 
         if (u.isStreaming) {
-          div.addEventListener("click", () => {
+          chip.title = isMe ? "Clique para ver sua prévia" : `Clique para assistir a tela de ${u.nick}`;
+          chip.addEventListener("click", () => {
             startWatching(u.clientId, u.nick);
           });
+
+          if (!isMe) {
+            const quickBtn = document.createElement("button");
+            quickBtn.className = "btn btn-danger";
+            quickBtn.style.width = "100%";
+            quickBtn.style.padding = "12px";
+            quickBtn.innerHTML = `🔴 Assistir Tela de <strong>${escapeHtml(u.nick)}</strong> (${escapeHtml(u.streamInfo?.label || "Ao Vivo")})`;
+            quickBtn.addEventListener("click", () => startWatching(u.clientId, u.nick));
+            liveQuickButtons.appendChild(quickBtn);
+          }
         }
 
-        usersListEl.appendChild(div);
+        usersListEl.appendChild(chip);
       });
     }
 
+    // =========================================================================
+    // CHAT LATERAL RETRÁTIL
+    // =========================================================================
+    const chatDrawer = document.getElementById("chat-drawer");
+    const chatUnreadDot = document.getElementById("chat-unread-dot");
     const chatMessagesEl = document.getElementById("chat-messages");
     const chatForm = document.getElementById("chat-form");
     const chatInput = document.getElementById("chat-input");
 
+    document.getElementById("btn-toggle-chat").addEventListener("click", () => {
+      chatDrawer.classList.toggle("open");
+      if (chatDrawer.classList.contains("open")) {
+        chatUnreadDot.style.display = "none";
+        chatInput.focus();
+      }
+    });
+
+    document.getElementById("btn-close-chat").addEventListener("click", () => {
+      chatDrawer.classList.remove("open");
+    });
+
     function renderChatHistory(list) {
       chatMessagesEl.innerHTML = "";
-      list.forEach((m) => appendChatMessage(m));
+      list.forEach((m) => appendChatMessage(m, false));
     }
 
-    function appendChatMessage(m) {
+    function appendChatMessage(m, isRealtime) {
       if (!m) return;
       const div = document.createElement("div");
       div.className = "chat-msg";
@@ -2180,14 +2098,18 @@
         minute: "2-digit"
       });
       div.innerHTML = `
-        <div class="chat-msg-header">
-          <span class="chat-msg-author">${escapeHtml(m.nick)}</span>
-          <span class="chat-msg-time">${timeStr}</span>
+        <div class="chat-msg-head">
+          <span class="chat-author">${escapeHtml(m.nick)}</span>
+          <span class="chat-time">${timeStr}</span>
         </div>
         <div>${escapeHtml(m.text)}</div>
       `;
       chatMessagesEl.appendChild(div);
       chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+
+      if (isRealtime && !chatDrawer.classList.contains("open") && m.clientId !== myClientId) {
+        chatUnreadDot.style.display = "inline-block";
+      }
     }
 
     chatForm.addEventListener("submit", async (e) => {
@@ -2201,12 +2123,8 @@
     });
 
     // =========================================================================
-    // CONTROLES DE TELA CHEIA, PIP, TEATRO E SAÍDA
+    // TELA CHEIA E PICTURE-IN-PICTURE
     // =========================================================================
-    document.getElementById("btn-toggle-theater").addEventListener("click", () => {
-      document.body.classList.toggle("theater-mode");
-    });
-
     document.getElementById("btn-fullscreen").addEventListener("click", () => {
       const vp = document.getElementById("video-viewport");
       if (!document.fullscreenElement) {
@@ -2224,14 +2142,6 @@
           await mainVideo.requestPictureInPicture();
         }
       }
-    });
-
-    document.getElementById("btn-logout").addEventListener("click", async () => {
-      await stopScreenShare();
-      stopWatching(true);
-      try { await apiAction("leave"); } catch (_) {}
-      if (eventSource) eventSource.close();
-      location.reload();
     });
 
     window.addEventListener("beforeunload", () => {
