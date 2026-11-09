@@ -14,33 +14,31 @@ Você pode abrir o painel de calibragem e ações de duas formas:
 
 ---
 
-## 🎮 2. Controle Virtual Interativo & Mapeamento Inteligente
+## 🎮 2. Navegação em Abas & Separação Arquitetural
 
-À esquerda da tela existe um controle simulado reproduzindo fielmente o layout do controle físico:
+Para garantir segurança total e usabilidade sem atritos, o sistema separa de forma estrita a **Calibragem de Hardware (Sensor IR)** da **Atribuição de Funções (Software)**:
 
-- **Botão Power ⏻ vermelho:** Ação de desligamento protegido.
-- **Bloco TV Control:** Teclas `SET`, `IN`, `VOL-`, `VOL+` e `TV Power`.
-- **Linha de Cores:** `SETUP` (laranja), `APP` (verde), `VOL-` (amarelo) e `VOL+` (azul).
-- **Navegação & D-pad:** `Home` 🏠, `Back` ↩️, setas (`▲`, `▼`, `◀`, `▶`), `OK`, `Menu` ☰ e `Mouse` 🖱️.
-- **Teclado Numérico 3x4:** `1` a `9`, `Mute` 🔇, `0` e `Delete` ⌫.
+1. **🎮 Teclas & Funções (Aba Principal):**
+   - Esta aba é onde você escolhe o que cada botão do controle faz (Desligar, Reiniciar, Limpar RAM, Containers ou APIs).
+   - **Zero risco de sobrescrever hardware:** O código físico infravermelho (`0x...`) é protegido contra alterações acidentais nesta aba.
+   - **Atribuição Rápida pelo Simulador:** Basta clicar em qualquer tecla no controle virtual à esquerda para selecionar o botão, escolher a ação no menu suspenso e salvar.
+   - **Edição Direta na Tabela Geral:** Cada linha da tabela de teclas possui um menu suspenso `<select>` embutido. Você pode alterar a ação de qualquer botão com apenas 1 clique direto na linha!
 
-### ✨ Indicadores Visuais de Pareamento (Pontos Verdes):
-- Todos os botões do controle virtual que já possuem mapeamento salvo recebem automaticamente um **ponto verde luminoso** no canto superior direito e borda realçada.
-- Você bate o olho no simulador e sabe exatamente quais teclas já foram configuradas e quais faltam!
+2. **⚡ Sequências & Combos (Macros de Múltiplas Teclas):**
+   - Permite disparar qualquer ação ou script através de uma **sequência composta de botões** (ex: `SETUP ➔ 1` reinicia o servidor, `1 ➔ 2 ➔ 3` limpa a memória RAM, `OK ➔ OK ➔ OK` pausa contêineres).
+   - **Dois Modos de Gravação:**
+     - 🖱️ **Clicando no Controle Virtual:** Clique nos botões do simulador na ordem que desejar.
+     - 🔴 **Com o Controle Remoto Real:** Aponte o controle físico para a TV Box e aperte a sequência. O sensor captura os pulsos na ordem exata!
+   - O daemon processa as sequências com timeout dinâmico e executa a ação imediatamente ao completar o combo.
 
-### 🎯 Como Mapear Teclas Sem Atrito (Dois Fluxos Suportados):
-1. **Fluxo A — Clicar no Controle Virtual primeiro:**
-   - Clique no botão desejado no simulador (ex: `1`). Ele ganha destaque ciano e o campo "Nome do Botão" é preenchido automaticamente como `"1"`.
-   - Aponte o controle físico para a TV Box e aperte a tecla `1`. O código hex (ex: `0x101`) é capturado instantaneamente no campo Scancode **sem apagar nem sobrescrever o nome**.
-   - Aperte **Enter** ou clique em **"💾 Salvar Mapeamento"**. O botão ganha o ponto verde na hora!
-2. **Fluxo B — Apertar o Controle Físico primeiro:**
-   - Aponte o controle para a TV Box e aperte qualquer botão. O código hex é preenchido no Scancode.
-   - Em seguida, clique no botão correspondente no simulador (ex: `Menu`). O sistema associa o código capturado à tecla selecionada sem apagar o Scancode!
-   - Aperte **Enter** ou clique em **"💾 Salvar Mapeamento"**.
+3. **📡 Parear Controle (IR - Hardware):**
+   - Aba exclusiva para calibrar o hardware do sensor quando você estiver utilizando um novo controle remoto físico.
+   - Aqui você associa o sinal infravermelho (`Scancode` em Hexadecimal) ao nome do botão (Power, OK, 1, 2, Cima, Baixo, etc.), sem alterar as funções lógicas já atribuídas.
+   - As teclas já pareadas recebem um ponto verde luminoso no simulador.
 
 ---
 
-## 🔐 3. Trava de Segurança por Sequência (Anti-Acidentes)
+## 🔐 3. Trava de Segurança Geral (Anti-Acidentes)
 
 Como TV Boxes compartilham códigos infravermelhos com TVs da sala (como LG ou Samsung), o sistema vem blindado com uma **Sequência de Desbloqueio** antes de executar ações críticas (como desligar ou reiniciar):
 
