@@ -947,6 +947,12 @@
     const btnSwitchSource = document.getElementById("btn-switch-source");
     const btnStopShare = document.getElementById("btn-stop-share");
 
+    const bottomDockWrap = document.querySelector(".bottom-dock-wrap");
+    const settingsPopover = document.getElementById("settings-popover");
+    const sliderVolume = document.getElementById("slider-volume");
+    const labelVolume = document.getElementById("label-volume");
+    const btnMuteWatch = document.getElementById("btn-mute-watch");
+
     const chatDrawer = document.getElementById("chat-drawer");
     const chatUnreadDot = document.getElementById("chat-unread-dot");
     const chatMessagesEl = document.getElementById("chat-messages");
@@ -1148,7 +1154,6 @@
     // =========================================================================
     // OCULTAÇÃO AUTOMÁTICA DO DOCK INFERIOR (ESTILO CINEMA / YOUTUBE)
     // =========================================================================
-    const bottomDockWrap = document.querySelector(".bottom-dock-wrap");
     let dockHideTimer = null;
     let isMouseOverDock = false;
 
@@ -1189,7 +1194,6 @@
     // =========================================================================
     // POPOVER DE CONFIGURAÇÃO DE QUALIDADE E ORIGEM DE ÁUDIO
     // =========================================================================
-    const settingsPopover = document.getElementById("settings-popover");
     document.getElementById("btn-open-settings").addEventListener("click", () => {
       settingsPopover.classList.toggle("open");
       showDockAndScheduleHide();
@@ -1984,10 +1988,6 @@
     // =========================================================================
     // CONTROLE DE VOLUME COM AMPLIFICADOR (0% A 200% BOOST)
     // =========================================================================
-    const sliderVolume = document.getElementById("slider-volume");
-    const labelVolume = document.getElementById("label-volume");
-    const btnMuteWatch = document.getElementById("btn-mute-watch");
-
     function setupWatchVolumeBoost(stream) {
       if (watchAudioCtx) {
         watchAudioCtx.close().catch(() => {});
