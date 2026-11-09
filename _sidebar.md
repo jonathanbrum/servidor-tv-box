@@ -2,6 +2,8 @@
   * [Guia Rápido dos Apps](README.md)
 
 * **📖 Como Mexer nos Apps**
+  * [🚀 Central de Projetos (Hub de Links)](docs/14-manual-central-de-projetos-hub.md)
+  * [📡 Controle Remoto (Calibrador e Ações)](docs/15-calibracao-e-acoes-do-controle-remoto.md)
   * [🐳 Portainer (Subir Repo do GitHub)](docs/08-manual-portainer-deploy-github.md)
   * [⚡ PocketBase (Banco, Login e Sites)](docs/09-manual-pocketbase-banco-e-api.md)
   * [🏠 CasaOS & Node-RED (NAS e Bots)](docs/10-manual-casaos-e-nodered.md)

@@ -98,11 +98,16 @@ systemctl restart casaos-app-management
 curl -s -o /dev/null -w 'appgrid HTTP: %{http_code} in %{time_total}s\n' http://127.0.0.1/v2/app_management/web/appgrid
 ```
 
-### 4.2. Diagnóstico de Lentidão no `tvbox.local` (mDNS / Avahi) e SSH
-Para garantir que `http://tvbox.local` responda em milissegundos no PC e no celular sem conflito com redes Docker ou atraso de IPv6:
-* O `avahi-daemon` deve estar restrito à interface física (`allow-interfaces=end0`) e apenas IPv4 (`use-ipv6=no`) em `/etc/avahi/avahi-daemon.conf`.
+### 4.2. Diagnóstico de Lentidão no `tvbox.local` (mDNS / Avahi), Wi-Fi Fallback e SSH
+Para garantir que `http://tvbox.local` responda em milissegundos no PC e no celular tanto no cabo quanto no Wi-Fi, sem conflito com redes Docker ou atraso de IPv6:
+* O `avahi-daemon` deve estar restrito às interfaces físicas (`allow-interfaces=end0,wlan0`) e apenas IPv4 (`use-ipv6=no`) em `/etc/avahi/avahi-daemon.conf`.
 * **Não** ative `MulticastDNS=yes` no `systemd-resolved` simultaneamente com o `avahi-daemon` (evita disputa na porta UDP 5353).
 * Mantenha `UseDNS no` em `/etc/ssh/sshd_config` para login SSH instantâneo.
+* **Wi-Fi Interno (`wlan0` - Chip SSV6006C / SSV6256P SDIO `3030:3030`):**
+  * Carregado pelo módulo `/lib/modules/6.12.64-current-sunxi64/kernel/drivers/net/wireless/ssv6256p/ssv6x5x.ko` via `/etc/modules-load.d/ssv6x5x.conf` (com os módulos conflitantes Unisoc `sprdwl_ng`, `sprdbt_tty` e `uwe5622_bsp_sdio` bloqueados em `/etc/modprobe.d/blacklist-unisoc-wifi.conf`).
+  * Gerenciado pelo `NetworkManager` (`nmcli`) com `ipv4.route-metric 600` (fallback automático quando o cabo `end0` está desconectado) e painel visual Web na porta `1885` (`systemctl status tvbox-wifi-webui.service` / `http://tvbox.local:1885`).
+* **Sensor Infravermelho do Controle Remoto (`sunxi-ir` em `/dev/input/event5`):**
+  * Protocolo NEC nativo exclusivo (`ir-keytable -p nec`) e central web de mapeamento/ações rodando na porta `1886` (`systemctl status tvbox-remote-hub.service` / `http://tvbox.local:1886`), consumindo apenas ~11 MB de RAM para disparar `poweroff`, `reboot`, limpeza de RAM e containers.
 
 ---
 

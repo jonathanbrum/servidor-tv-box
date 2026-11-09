@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Projetos — Mini-VPS TV Box</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #090d16;
+            --bg-surface: #101726;
+            --bg-surface-hover: #151f33;
+            --bg-card: #131c2e;
+            --border: #1e2c45;
+            --border-hover: #2f446b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent-green: #10b981;
+            --accent-purple: #a855f7;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            line-height: 1.5;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Top Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            background: rgba(16, 23, 38, 0.8);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+            line-height: 1;
+            background: rgba(56, 189, 248, 0.15);
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .server-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: #0284c7;
+            color: #fff;
+            border-color: #38bdf8;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #0369a1;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-main);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-surface-hover);
+            border-color: var(--border-hover);
+        }
+
+        /* Main Container */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* Toolbar: Search, Filters & Counters */
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+        }
+
+        .toolbar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.65rem 1rem 0.65rem 2.5rem;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .stats-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            font-size: 0.8rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .stat-item strong {
+            color: #fff;
+            margin-left: 0.25rem;
+        }
+
+        .filter-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .filter-tab {
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .filter-tab:hover {
+            color: #fff;
+            border-color: var(--border-hover);
+        }
+
+        .filter-tab.active {
+            background: var(--primary-glow);
+            color: var(--primary);
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Projects Grid */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(410px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Project Card */
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .card-heading h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .card-tags {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-cat {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            background: rgba(56, 189, 248, 0.1);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .badge-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .status-online {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-dev {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-paused {
+            background: rgba(148, 163, 184, 0.1);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .card-menu-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 6px;
+            transition: color 0.2s;
+        }
+
+        .card-menu-btn:hover {
+            color: #fff;
+        }
+
+        /* Card Description & Details */
+        .card-body {
+            margin-bottom: 1.25rem;
+            flex: 1;
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.4rem 0.65rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-notes {
+            font-size: 0.75rem;
+            color: #e2e8f0;
+            background: rgba(56, 189, 248, 0.05);
+            border-left: 2px solid var(--primary);
+            padding: 0.4rem 0.65rem;
+            border-radius: 0 4px 4px 0;
+            margin-top: 0.5rem;
+        }
+
+        /* Card Links Section */
+        .card-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .link-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .link-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.725rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .label-local {
+            color: #38bdf8;
+        }
+
+        .label-public {
+            color: #c084fc;
+        }
+
+        .link-box {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+        }
+
+        .link-url-text {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 0.775rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .link-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn-link-action {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-main);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.15s;
+        }
+
+        .btn-link-action:hover {
+            background: var(--bg-surface-hover);
+            border-color: var(--border-hover);
+            color: #fff;
+        }
+
+        .btn-link-open {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-link-open:hover {
+            background: rgba(56, 189, 248, 0.25);
+            color: #fff;
+        }
+
+        .btn-public-open {
+            background: rgba(168, 85, 247, 0.12);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .btn-public-open:hover {
+            background: rgba(168, 85, 247, 0.25);
+            color: #fff;
+        }
+
+        .no-public-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            padding: 0.45rem 0.75rem;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 580px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.75rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .emoji-presets {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .emoji-pill {
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.15s;
+        }
+
+        .emoji-pill:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.25rem;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #101726;
+            color: #fff;
+            border: 1px solid var(--border-hover);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.25s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-group">
+                <div class="logo-icon">🚀</div>
+                <div class="logo-text">
+                    <h1>Central de Projetos</h1>
+                    <p>Mini-VPS TV Box &bull; Hub Local Privado</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="server-badge" id="hostBadge">
+                    <span class="pulse-dot"></span>
+                    <span id="detectedHostText">Rede Local</span>
+                </div>
+                <button class="btn btn-secondary" onclick="exportData()" title="Fazer backup dos projetos em JSON">
+                    💾 Backup
+                </button>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    + Novo Projeto
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-top">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Buscar projeto, porta, tag ou tecnologia..." oninput="handleSearch()">
+                </div>
+                <div class="stats-pills">
+                    <div class="stat-item">Total: <strong id="statTotal">0</strong></div>
+                    <div class="stat-item">Online: <strong id="statOnline" style="color: #34d399">0</strong></div>
+                    <div class="stat-item">Públicos: <strong id="statPublic" style="color: #c084fc">0</strong></div>
+                </div>
+            </div>
+
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab active" onclick="setFilter('Todos')">Todos</button>
+                <button class="filter-tab" onclick="setFilter('Sistema')">Sistema</button>
+                <button class="filter-tab" onclick="setFilter('WebRTC')">WebRTC</button>
+                <button class="filter-tab" onclick="setFilter('Banco & API')">Banco & API</button>
+                <button class="filter-tab" onclick="setFilter('Automação')">Automação</button>
+                <button class="filter-tab" onclick="setFilter('DevOps')">DevOps</button>
+                <button class="filter-tab" onclick="setFilter('Documentação')">Documentação</button>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div class="projects-grid" id="projectsGrid">
+            <!-- Inserido dinamicamente via JS -->
+        </div>
+    </main>
+
+    <!-- Modal Novo / Editar Projeto -->
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Adicionar Projeto</h2>
+                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <form id="projectForm" onsubmit="handleSaveProject(event)">
+                <input type="hidden" id="formProjectId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Projeto *</label>
+                        <input type="text" class="form-input" id="formNome" placeholder="Ex: Meu Jogo Multiplayer" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Ícone / Emoji *</label>
+                        <input type="text" class="form-input" id="formIcone" placeholder="Ex: 🎮" value="🚀" required>
+                        <div class="emoji-presets">
+                            <span class="emoji-pill" onclick="setEmoji('🚀')">🚀</span>
+                            <span class="emoji-pill" onclick="setEmoji('🖥️')">🖥️</span>
+                            <span class="emoji-pill" onclick="setEmoji('🌐')">🌐</span>
+                            <span class="emoji-pill" onclick="setEmoji('⚡')">⚡</span>
+                            <span class="emoji-pill" onclick="setEmoji('🧩')">🧩</span>
+                            <span class="emoji-pill" onclick="setEmoji('🐳')">🐳</span>
+                            <span class="emoji-pill" onclick="setEmoji('🤖')">🤖</span>
+                            <span class="emoji-pill" onclick="setEmoji('🎮')">🎮</span>
+                            <span class="emoji-pill" onclick="setEmoji('📚')">📚</span>
+                            <span class="emoji-pill" onclick="setEmoji('📊')">📊</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Categoria / Tags</label>
+                        <input type="text" class="form-input" id="formCategoria" placeholder="Ex: Web, Jogo, API" list="categoryList">
+                        <datalist id="categoryList">
+                            <option value="Sistema">
+                            <option value="WebRTC">
+                            <option value="Banco & API">
+                            <option value="Automação">
+                            <option value="DevOps">
+                            <option value="Documentação">
+                            <option value="Web / Site">
+                            <option value="Bots & IA">
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="formStatus">
+                            <option value="online">🟢 Online</option>
+                            <option value="dev">🟡 Em Desenvolvimento</option>
+                            <option value="paused">⏸️ Pausado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descrição / Informações do Projeto</label>
+                    <textarea class="form-textarea" id="formDescricao" placeholder="Explique brevemente o que esse projeto faz..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Detalhes Técnicos (Porta, RAM, etc.)</label>
+                    <input type="text" class="form-input" id="formDetalhes" placeholder="Ex: Porta: 8080 | PocketBase | 0 MB RAM">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; justify-content: space-between;">
+                        <span>Link Local (LAN) *</span>
+                        <a href="javascript:void(0)" onclick="fillCurrentHost()" style="color: var(--primary); text-decoration: none; font-size: 0.75rem;">✨ Preencher IP Local</a>
+                    </label>
+                    <input type="text" class="form-input" id="formUrlLocal" placeholder="Ex: http://192.168.1.100:8080" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Link Público (Tailscale Funnel / Cloudflare / HTTPS)</label>
+                    <input type="text" class="form-input" id="formUrlPublica" placeholder="Ex: https://meusite.ts.net:8443 (deixe em branco se for só local)">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notas Rápidas / Credenciais de Teste (Visível só para você)</label>
+                    <input type="text" class="form-input" id="formNotas" placeholder="Ex: Senha de teste: admin123, comando: /status">
+                </div>
+
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" id="btnDeleteModal" class="btn btn-secondary" style="color: #f43f5e; border-color: rgba(244, 63, 94, 0.3); display: none;" onclick="handleDeleteFromModal()">🗑️ Excluir</button>
+                    <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Projeto</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toastMessage">
+        <span id="toastIcon">✓</span>
+        <span id="toastText">Ação realizada com sucesso!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Central de Projetos da TV Box &bull; Arquitetura Blindada 1 GB RAM</p>
+        <div class="footer-links">
+            <a href="javascript:void(0)" onclick="openCasaOS()">🏠 Voltar ao CasaOS</a>
+            <a href="javascript:void(0)" onclick="openWiki()">📚 Abrir Wiki Docsify</a>
+            <a href="javascript:void(0)" onclick="openPocketBase()">⚡ PocketBase Admin</a>
+        </div>
+    </footer>
+
+    <!-- Script de Lógica -->
+    <script>
+        // Projetos padrão caso o servidor ainda não tenha salvo nada
+        const DEFAULT_PROJETOS = [
+            {
+                id: "casaos",
+                nome: "CasaOS (Painel Geral)",
+                icone: "🏠",
+                categoria: "Sistema",
+                status: "online",
+                descricao: "Central de controle da TV Box, monitor de RAM/CPU, pastas de rede (NAS) e gestão de containers.",
+                detalhes: "Porta 80 | Base Linux Armbian | Painel do Homelab",
+                url_local: "http://tvbox.local",
+                url_publica: "https://tvbox.tailb6e36d.ts.net/",
+                notas: "Login e senha configurados na instalação inicial."
+            },
+            {
+                id: "telap2p",
+                nome: "TelaP2P (Live Stream 60 FPS)",
+                icone: "🖥️",
+                categoria: "WebRTC",
+                status: "online",
+                descricao: "Compartilhamento de tela e áudio com latência zero e 60 FPS via WebRTC P2P (alternativa leve ao Discord).",
+                detalhes: "Porta 8090/tela/ (LAN) e 8443 (Funnel) | Consumo: 0 MB RAM extra",
+                url_local: "http://tvbox.local:8090/tela/",
+                url_publica: "https://tvbox.tailb6e36d.ts.net:8443/tela/",
+                notas: "Senha padrão da sala: 123456"
+            },
+            {
+                id: "wiki",
+                nome: "Wiki Docsify (Documentação)",
+                icone: "📚",
+                categoria: "Documentação",
+                status: "online",
+                descricao: "Documentação viva e interativa do servidor, com manuais operacionais, arquitetura e dicas de manutenção.",
+                detalhes: "Porta 8090/wiki/ | Sincronização GitOps automática (60s)",
+                url_local: "http://tvbox.local:8090/wiki/",
+                url_publica: "https://tvbox.tailb6e36d.ts.net:8443/wiki/",
+                notas: "Repositório sincronizado via container wiki-tvbox-sync."
+            },
+            {
+                id: "pocketbase",
+                nome: "PocketBase (Banco & API)",
+                icone: "⚡",
+                categoria: "Banco & API",
+                status: "online",
+                descricao: "Backend tudo-em-um em Go + SQLite. Autenticação, banco em tempo real e hospedagem de sites estáticos.",
+                detalhes: "Porta 8090/_/ | Arquivo único SQLite | ~15 MB RAM",
+                url_local: "http://tvbox.local:8090/_/",
+                url_publica: "",
+                notas: "Painel Admin acessível na subpasta /_/"
+            },
+            {
+                id: "nodered",
+                nome: "Node-RED (Automação & APIs)",
+                icone: "🧩",
+                categoria: "Automação",
+                status: "online",
+                descricao: "Plataforma visual em blocos para criação de endpoints REST, bots de Telegram/Discord e automações.",
+                detalhes: "Porta 1880 | NodeJS Alpine | ~60 MB RAM",
+                url_local: "http://tvbox.local:1880",
+                url_publica: "",
+                notas: "Deploy de novos fluxos e rotinas com 1 clique."
+            },
+            {
+                id: "portainer",
+                nome: "Portainer (Docker & GitOps)",
+                icone: "🐳",
+                categoria: "DevOps",
+                status: "online",
+                descricao: "Gerenciamento visual completo de containers Docker, volumes, redes e Stacks com GitOps do GitHub.",
+                detalhes: "Porta 9000 | Portainer CE | ~25 MB RAM",
+                url_local: "http://tvbox.local:9000",
+                url_publica: "",
+                notas: "Acesse Stacks para associar novos repositórios Git."
+            }
+        ];
+
+        let state = {
+            projetos: [],
+            currentFilter: "Todos",
+            searchQuery: ""
+        };
+
+        // Host padrão resiliente a mudanças de IP (mDNS)
+        const DEFAULT_HOST = "tvbox.local";
+        const currentHostname = window.location.hostname || DEFAULT_HOST;
+        document.getElementById("detectedHostText").innerText = "tvbox.local (mDNS)";
+
+        // Resolve URLs trocando o placeholder ou IP antigo por tvbox.local
+        function resolveUrl(url) {
+            if (!url) return "";
+            return url.replace(/<IP_DA_TV_BOX>/g, DEFAULT_HOST);
+        }
+
+        // Limpa IPs antigos e garante tvbox.local
+        function sanitizeProjectUrls(projList) {
+            return projList.map(p => {
+                if (p.url_local) {
+                    p.url_local = p.url_local
+                        .replace(/<IP_DA_TV_BOX>/g, DEFAULT_HOST)
+                        .replace(/http:\/\/192\.168\.\d+\.\d+/g, `http://${DEFAULT_HOST}`);
+                }
+                return p;
+            });
+        }
+
+        // Carregamento inicial
+        async function loadProjects() {
+            try {
+                // Tenta carregar da API do servidor PocketBase
+                const res = await fetch("/api/hub/projetos");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Array.isArray(data.data) && data.data.length > 0) {
+                        state.projetos = sanitizeProjectUrls(data.data);
+                        localStorage.setItem("hub_projetos_cache", JSON.stringify(state.projetos));
+                        renderGrid();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("API de hub indisponível, usando cache local", e);
+            }
+
+            // Fallback: LocalStorage ou Padrão
+            const cached = localStorage.getItem("hub_projetos_cache");
+            if (cached) {
+                try {
+                    state.projetos = sanitizeProjectUrls(JSON.parse(cached));
+                } catch (_) {
+                    state.projetos = DEFAULT_PROJETOS;
+                }
+            } else {
+                state.projetos = DEFAULT_PROJETOS;
+                // Salva o padrão no servidor
+                saveToServer(state.projetos);
+            }
+
+            renderGrid();
+        }
+
+
+        // Salva projetos na API da TV Box e no LocalStorage
+        async function saveToServer(projetosList) {
+            localStorage.setItem("hub_projetos_cache", JSON.stringify(projetosList));
+            try {
+                await fetch("/api/hub/projetos", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ projetos: projetosList })
+                });
+            } catch (err) {
+                console.error("Erro ao sincronizar com servidor:", err);
+            }
+        }
+
+        // Renderização dos cards
+        function renderGrid() {
+            const grid = document.getElementById("projectsGrid");
+            grid.innerHTML = "";
+
+            const query = state.searchQuery.toLowerCase().trim();
+            const filtered = state.projetos.filter(p => {
+                const matchFilter = state.currentFilter === "Todos" || (p.categoria && p.categoria.toLowerCase() === state.currentFilter.toLowerCase());
+                const matchSearch = !query || 
+                    (p.nome && p.nome.toLowerCase().includes(query)) ||
+                    (p.descricao && p.descricao.toLowerCase().includes(query)) ||
+                    (p.detalhes && p.detalhes.toLowerCase().includes(query)) ||
+                    (p.categoria && p.categoria.toLowerCase().includes(query)) ||
+                    (p.url_local && p.url_local.toLowerCase().includes(query));
+                return matchFilter && matchSearch;
+            });
+
+            // Atualiza contadores
+            document.getElementById("statTotal").innerText = state.projetos.length;
+            document.getElementById("statOnline").innerText = state.projetos.filter(p => p.status === 'online').length;
+            document.getElementById("statPublic").innerText = state.projetos.filter(p => p.url_publica && p.url_publica.trim()).length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-dim);">
+                        <p style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</p>
+                        <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 0.25rem;">Nenhum projeto encontrado</h3>
+                        <p style="font-size: 0.85rem;">Tente ajustar sua busca ou filtro acima.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(proj => {
+                const localUrl = resolveUrl(proj.url_local);
+                const publicUrl = resolveUrl(proj.url_publica);
+
+                let statusBadge = `<span class="badge-status status-online">🟢 Online</span>`;
+                if (proj.status === 'dev') statusBadge = `<span class="badge-status status-dev">🟡 Em Dev</span>`;
+                if (proj.status === 'paused') statusBadge = `<span class="badge-status status-paused">⏸️ Pausado</span>`;
+
+                const card = document.createElement("div");
+                card.className = "project-card";
+
+                card.innerHTML = `
+                    <div>
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <div class="card-icon">${proj.icone || '📦'}</div>
+                                <div class="card-heading">
+                                    <h3>${proj.nome}</h3>
+                                    <div class="card-tags">
+                                        <span class="badge-cat">${proj.categoria || 'Geral'}</span>
+                                        ${statusBadge}
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="card-menu-btn" onclick="openEditModal('${proj.id}')" title="Editar projeto">✏️</button>
+                        </div>
+
+                        <div class="card-body">
+                            <p class="card-desc">${proj.descricao || 'Sem descrição informada.'}</p>
+                            ${proj.detalhes ? `<div class="card-meta"><span>⚙️ ${proj.detalhes}</span></div>` : ''}
+                            ${proj.notas ? `<div class="card-notes">📌 <strong>Nota:</strong> ${proj.notas}</div>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="card-links">
+                        <!-- Link Local -->
+                        <div class="link-row">
+                            <div class="link-label label-local">
+                                <span>🏠 Link Local (LAN / Casa)</span>
+                            </div>
+                            <div class="link-box">
+                                <span class="link-url-text" title="${localUrl}">${localUrl}</span>
+                                <div class="link-actions">
+                                    <button class="btn-link-action" onclick="copyLink('${localUrl}', this)">Copiar</button>
+                                    <a href="${localUrl}" target="_blank" class="btn-link-action btn-link-open">Abrir ↗</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Link Público -->
+                        <div class="link-row">
+                            <div class="link-label label-public">
+                                <span>🌐 Link Público (Amigos / Internet)</span>
+                            </div>
+                            ${publicUrl ? `
+                                <div class="link-box">
+                                    <span class="link-url-text" title="${publicUrl}">${publicUrl}</span>
+                                    <div class="link-actions">
+                                        <button class="btn-link-action" onclick="copyLink('${publicUrl}', this)">Copiar</button>
+                                        <a href="${publicUrl}" target="_blank" class="btn-link-action btn-public-open">Abrir ↗</a>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="no-public-badge">
+                                    <span>🔒 Apenas Acesso Local (Não exposto na Internet)</span>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Filtros e busca
+        function setFilter(cat) {
+            state.currentFilter = cat;
+            document.querySelectorAll(".filter-tab").forEach(tab => {
+                tab.classList.toggle("active", tab.innerText === cat);
+            });
+            renderGrid();
+        }
+
+        function handleSearch() {
+            state.searchQuery = document.getElementById("searchInput").value;
+            renderGrid();
+        }
+
+        // Copiar link com feedback visual
+        function copyLink(text, btnElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btnElement.innerText;
+                btnElement.innerText = "✓ Copiado!";
+                btnElement.style.borderColor = "#10b981";
+                btnElement.style.color = "#34d399";
+                setTimeout(() => {
+                    btnElement.innerText = originalText;
+                    btnElement.style.borderColor = "";
+                    btnElement.style.color = "";
+                }, 1800);
+            }).catch(() => {
+                showToast("Erro ao copiar link");
+            });
+        }
+
+        // Modais (Adicionar / Editar)
+        function openAddModal() {
+            document.getElementById("modalTitle").innerText = "Adicionar Novo Projeto";
+            document.getElementById("projectForm").reset();
+            document.getElementById("formProjectId").value = "";
+            document.getElementById("formIcone").value = "🚀";
+            document.getElementById("btnDeleteModal").style.display = "none";
+            document.getElementById("projectModal").classList.add("active");
+        }
+
+        function openEditModal(id) {
+            const p = state.projetos.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById("modalTitle").innerText = "Editar Projeto";
+            document.getElementById("formProjectId").value = p.id;
+            document.getElementById("formNome").value = p.nome || "";
+            document.getElementById("formIcone").value = p.icone || "📦";
+            document.getElementById("formCategoria").value = p.categoria || "";
+            document.getElementById("formStatus").value = p.status || "online";
+            document.getElementById("formDescricao").value = p.descricao || "";
+            document.getElementById("formDetalhes").value = p.detalhes || "";
+            document.getElementById("formUrlLocal").value = p.url_local || "";
+            document.getElementById("formUrlPublica").value = p.url_publica || "";
+            document.getElementById("formNotas").value = p.notas || "";
+            document.getElementById("btnDeleteModal").style.display = "inline-flex";
+
+            document.getElementById("projectModal").classList.add("active");
+        }
+
+        function handleDeleteFromModal() {
+            const id = document.getElementById("formProjectId").value;
+            if (id) {
+                deleteProject(id);
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById("projectModal").classList.remove("active");
+        }
+
+        function setEmoji(emoji) {
+            document.getElementById("formIcone").value = emoji;
+        }
+
+        function fillCurrentHost() {
+            const input = document.getElementById("formUrlLocal");
+            input.value = `http://${DEFAULT_HOST}:`;
+            input.focus();
+        }
+
+        function handleSaveProject(e) {
+            e.preventDefault();
+            const id = document.getElementById("formProjectId").value || "proj_" + Date.now();
+            const novo = {
+                id: id,
+                nome: document.getElementById("formNome").value.trim(),
+                icone: document.getElementById("formIcone").value.trim() || "📦",
+                categoria: document.getElementById("formCategoria").value.trim() || "Geral",
+                status: document.getElementById("formStatus").value,
+                descricao: document.getElementById("formDescricao").value.trim(),
+                detalhes: document.getElementById("formDetalhes").value.trim(),
+                url_local: document.getElementById("formUrlLocal").value.trim(),
+                url_publica: document.getElementById("formUrlPublica").value.trim(),
+                notas: document.getElementById("formNotas").value.trim()
+            };
+
+            const index = state.projetos.findIndex(item => item.id === id);
+            if (index >= 0) {
+                state.projetos[index] = novo;
+                showToast("Projeto atualizado com sucesso!");
+            } else {
+                state.projetos.unshift(novo);
+                showToast("Projeto adicionado com sucesso!");
+            }
+
+            saveToServer(state.projetos);
+            closeModal();
+            renderGrid();
+        }
+
+        function deleteProject(id) {
+            if (confirm("Tem certeza que deseja remover este projeto da Central?")) {
+                state.projetos = state.projetos.filter(p => p.id !== id);
+                saveToServer(state.projetos);
+                renderGrid();
+                showToast("Projeto removido.");
+            }
+        }
+
+        // Exportação / Backup em JSON
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.projetos, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `central_projetos_tvbox_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Backup baixado com sucesso!");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toastMessage");
+            document.getElementById("toastText").innerText = msg;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+
+        // Navegação Rápida
+        function openCasaOS() {
+            window.location.href = `http://${DEFAULT_HOST}`;
+        }
+
+        function openWiki() {
+            window.location.href = `http://${DEFAULT_HOST}:8090/wiki/`;
+        }
+
+        function openPocketBase() {
+            window.location.href = `http://${DEFAULT_HOST}:8090/_/`;
+        }
+
+        // Inicia
+        loadProjects();
+    </script>
+</body>
+</html>

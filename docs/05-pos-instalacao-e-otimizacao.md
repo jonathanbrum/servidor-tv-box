@@ -136,8 +136,9 @@ sed -i 's/x96q-v5-1/tvbox/g' /etc/hosts
 # 2. Instalar o Avahi Daemon (mDNS padrão para PC e Celular)
 apt-get update && apt-get install -y avahi-daemon
 
-# 3. Isolar o Avahi apenas na placa de rede física (end0) e apenas em IPv4
-sed -i 's/^#allow-interfaces=.*/allow-interfaces=end0/' /etc/avahi/avahi-daemon.conf
+# 3. Isolar o Avahi apenas nas placas de rede físicas (end0 e wlan0) e apenas em IPv4
+sed -i 's/^#allow-interfaces=.*/allow-interfaces=end0,wlan0/' /etc/avahi/avahi-daemon.conf
+sed -i 's/^allow-interfaces=.*/allow-interfaces=end0,wlan0/' /etc/avahi/avahi-daemon.conf
 sed -i 's/use-ipv6=yes/use-ipv6=no/' /etc/avahi/avahi-daemon.conf
 
 # 4. Evitar atraso de DNS reverso no login SSH
