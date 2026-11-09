@@ -25,18 +25,22 @@ O **TelaP2P** é a central própria de compartilhamento de tela da TV Box, criad
 
 ## 🔊 2. Transmissão Direta de Áudio (Sem Instalar Nada)
 
-A transmissão de áudio funciona de forma **100% nativa e direta** pelo navegador, sem necessidade de instalar nenhum driver, plugin ou programa externo:
+A transmissão de áudio funciona de forma **100% nativa e direta** pelo navegador, permitindo escolher entre isolar o som ou enviar o áudio geral:
 
-### Como funciona no navegador:
-1. **Transmitir com Áudio (Tela Inteira, Janela ou Aba):**
-   * Ao clicar em **"🖥️ Compartilhar Minha Tela"**, o prompt nativo do navegador abrirá.
-   * **Tela Inteira:** Marque a caixinha **"Compartilhar áudio do sistema"** no rodapé do prompt para enviar o som direto do PC com áudio Estéreo 48 kHz sem filtros de abafamento.
-   * **Guia do Navegador (Aba):** Se você escolher uma aba específica (ex.: YouTube, Twitch, Netflix), o navegador isola nativamente apenas o áudio daquela aba.
-2. **🔇 Sem Áudio (Somente Imagem):**
-   * Se quiser transmitir apenas vídeo, mude para "Sem Áudio" no menu de engrenagem (`⚙️`).
-3. **Controle de Privacidade Instantâneo na Live:**
-   * Durante a transmissão, você tem o botão **`🔊 Áudio Live: ON`** no dock inferior.
-   * Basta clicar nele para mutar/desmutar o áudio no mesmo milissegundo, acompanhando o medidor de volume visual (**VU Meter**) em tempo real.
+### As 2 Opções de Áudio no Menu (`⚙️`):
+1. **🎮 Só Janela ou Aba (Isolado — Não Pega o Discord):**
+   * Aplica a restrição `systemAudio: "exclude"` e `windowAudio: "window"`.
+   * Quando o prompt do navegador abrir, selecione a aba **"Janela"** (do seu jogo/programa) ou uma **"Guia"** (do Chrome/navegador).
+   * **Vantagem:** O navegador captura **apenas o som daquela janela/aba**. O áudio das conversas do Discord, notificações do Windows e cliques do sistema **NÃO são transmitidos**!
+2. **🖥️ Tela Inteira / Áudio Geral do Windows:**
+   * Aplica `systemAudio: "include"` e `windowAudio: "system"`.
+   * Quando for compartilhar a Tela Inteira, marque a caixinha *"Compartilhar áudio do sistema"*. O som do Windows é transmitido direto com áudio Estéreo 48 kHz sem travas.
+3. **🔇 Sem Áudio (Somente Imagem):**
+   * Transmissão 100% muda para economizar dados ou focar apenas em vídeo.
+
+### Controle de Privacidade Instantâneo na Live:
+* Durante a transmissão, você tem o botão **`🔊 Áudio Live: ON`** no dock inferior.
+* Basta clicar nele para mutar/desmutar o áudio no mesmo milissegundo, acompanhando o medidor de volume visual (**VU Meter**) em tempo real.
 
 ---
 
