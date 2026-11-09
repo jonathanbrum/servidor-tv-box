@@ -47,6 +47,8 @@ Como TV Boxes compartilham códigos infravermelhos com TVs da sala (como LG ou S
 
 - Quando o servidor recebe a sequência correta (seja pelo controle físico ou clicando no simulador), a trava se abre instantaneamente.
 - O topo da tela fica **verde com contador regressivo** (`🔓 DESBLOQUEADO (15s restantes)`).
+- **Feedback Físico no LED Bicolor da TV Box:** Enquanto o controle estiver desbloqueado, a luz frontal da TV Box **pisca suavemente alternando entre Vermelho e Azul** a cada ~450ms. O indicador virtual no topo da tela pisca em sincronia exata!
+- Quando os 15 segundos terminam (ou ao clicar em "Bloquear Agora"), a TV Box volta automaticamente a ficar **100% AZUL contínua**.
 - Durante esses 15 segundos, qualquer ação protegida (como Power) é autorizada e executada com segurança!
 
 ---
