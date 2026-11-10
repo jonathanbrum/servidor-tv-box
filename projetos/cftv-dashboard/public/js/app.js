@@ -815,11 +815,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // CONTROLE GLOBAL DE QUALIDADE (HD / SD)
+  // CONTROLE GLOBAL DE QUALIDADE (HD / SD) — Padrão SD na TV Box para economia de CPU
   const btnTvQuality = document.getElementById('btnTvQuality');
   const btnHeaderQuality = document.getElementById('btnHeaderQuality');
   const labelHeaderQuality = document.getElementById('labelHeaderQuality');
-  let currentQuality = localStorage.getItem('cctv_quality') || 'hd';
+  let currentQuality = localStorage.getItem('cctv_quality') || 'sd';
 
   function updateQualityUI(quality, notify = true) {
     currentQuality = quality;

@@ -27,8 +27,8 @@ class SofiaStreamer {
     this.client = null;
     this.ffmpeg = null;
     this.sessionId = 0;
-    this.quality = 'hd';
-    this.streamType = 'Main';
+    this.quality = 'sd';
+    this.streamType = 'Extra1';
     this.isStreaming = false;
     this.tcpBuffer = Buffer.alloc(0);
     this.mediaBuffer = Buffer.alloc(0);
@@ -118,7 +118,7 @@ class SofiaStreamer {
     this.recentTsBuffer = null;
 
     const isHd = this.quality === 'hd';
-    const targetScale = isHd ? '1024:576' : '704:480';
+    const targetScale = isHd ? '854:480' : '640:360';
     console.log(`[SofiaStreamer] Conectando ${this.cam.name} (${this.cam.host}:${this.cam.port}) em ${this.quality.toUpperCase()} (${this.streamType}, 12 FPS, ${targetScale})...`);
 
     this.ffmpeg = spawn(ffmpegPath, [
@@ -135,10 +135,10 @@ class SofiaStreamer {
       '-f', 'mpegts',
       '-codec:v', 'mpeg1video',
       '-q:v', isHd ? '4' : '6',
-      '-r', '25',
-      '-g', '15',
+      '-r', '12',
+      '-g', '12',
       '-bf', '0',
-      '-threads', '4',
+      '-threads', '1',
       '-flush_packets', '1',
       '-an',
       'pipe:1'
