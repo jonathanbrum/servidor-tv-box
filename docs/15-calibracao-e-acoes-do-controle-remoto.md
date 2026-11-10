@@ -107,6 +107,10 @@ A placa da TV Box `X96Q v5.1` possui um LED frontal duplo (**Bicolor**) comutado
   - O serviço roda em background como `tvbox-remote-hub.service`.
   - As ações e o controle do LED funcionam **24/7 mesmo se nenhum navegador estiver aberto**.
   - Consome apenas **~11-13 MB de memória RAM**, respeitando rigorosamente o limite de 1 GB da TV Box.
+- **Proteção do Cliente Web Contra Vazamento de RAM (Anti Fork-Bomb de SSE):**
+  - A comunicação em tempo real entre o navegador e o sensor IR utiliza *Server-Sent Events* (`EventSource('/api/events')`).
+  - O cliente web possui trava de reconexão única com fechamento explícito (`activeEvtSource.close()` + `sseReconnectTimer` único). Caso a TV Box seja desligada ou reiniciada, o navegador não acumula conexões zumbis em cascata exponencial ($2^N$), mantendo o consumo de memória RAM do navegador no PC cliente estável em ~20-30 MB mesmo com a aba aberta indefinidamente em segundo plano.
+  - Conta também com reconexão inteligente orientada por visibilidade (`visibilitychange`) e liberação de sockets ao sair (`beforeunload`).
 
 ---
 

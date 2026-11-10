@@ -2,3 +2,5 @@
 CREDENCIAIS_LOCAIS.md
 *.env
 .env*
+recuperar_ssd.ps1
+RECUPERAR_SSD.bat

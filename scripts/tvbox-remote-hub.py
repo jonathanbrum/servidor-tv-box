@@ -2137,80 +2137,146 @@ HTML_PAGE = """<!DOCTYPE html>
             }
         }
 
+        let activeEvtSource = null;
+        let sseReconnectTimer = null;
+
         function connectSSE() {
-            const evtSource = new EventSource('/api/events');
+            if (sseReconnectTimer) {
+                clearTimeout(sseReconnectTimer);
+                sseReconnectTimer = null;
+            }
 
-            evtSource.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                if (data.type === 'lock_update') {
-                    updateLockUI(data.status);
-                } else if (data.type === 'buffer_update') {
-                    const tag = document.getElementById('liveBufferTag');
-                    if (tag) {
-                        const buf = data.buffer || [];
-                        if (buf.length > 0) {
-                            tag.innerText = 'Últimas teclas: ' + buf.join(' ➔ ');
-                            tag.style.color = '#38bdf8';
+            if (activeEvtSource) {
+                try {
+                    activeEvtSource.close();
+                } catch(e) {}
+                activeEvtSource = null;
+            }
+
+            try {
+                activeEvtSource = new EventSource('/api/events');
+
+                activeEvtSource.onopen = () => {
+                    const pill = document.getElementById('sensorStatus');
+                    const txt = document.getElementById('sensorText');
+                    if (pill) pill.className = 'status-pill unlocked';
+                    if (txt) txt.innerText = 'Receptor IR Conectado';
+
+                    if (!currentConfig.buttons || currentConfig.buttons.length === 0) {
+                        loadConfig();
+                    }
+                };
+
+                activeEvtSource.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'lock_update') {
+                        updateLockUI(data.status);
+                    } else if (data.type === 'buffer_update') {
+                        const tag = document.getElementById('liveBufferTag');
+                        if (tag) {
+                            const buf = data.buffer || [];
+                            if (buf.length > 0) {
+                                tag.innerText = 'Últimas teclas: ' + buf.join(' ➔ ');
+                                tag.style.color = '#38bdf8';
+                            } else {
+                                tag.innerText = 'Aguardando teclas...';
+                                tag.style.color = '#93c5fd';
+                            }
+                        }
+                    } else if (data.type === 'recording_step') {
+                        if (recordingContext === 'lock' && recordingState.active && recordingState.mode === 'physical') {
+                            recordingState.buffer = data.record_buffer || [];
+                            renderRecordingBadges();
+                        } else if (recordingContext === 'combo' && comboRecording.active && comboRecording.mode === 'physical') {
+                            comboRecording.buffer = data.record_buffer || [];
+                            renderComboRecBadges();
+                        }
+                    } else if (data.type === 'event') {
+                        const scancode = (data.last_scancode || '').toLowerCase();
+                        const isMapped = data.is_mapped;
+                        const serverBtnName = data.button_name;
+                        const btnId = data.button_id;
+
+                        const match = currentConfig.buttons.find(b => b.scancode.toLowerCase() === scancode);
+
+                        if (match && match.id) {
+                            flashVirtualKey(match.id);
+                        } else if (btnId) {
+                            flashVirtualKey(btnId);
                         } else {
-                            tag.innerText = 'Aguardando teclas...';
-                            tag.style.color = '#93c5fd';
+                            const led = document.getElementById('remoteLed');
+                            if (led && !led.classList.contains('unlocked-pulse')) {
+                                led.classList.add('red');
+                                setTimeout(() => led.classList.remove('red'), 130);
+                            }
                         }
-                    }
-                } else if (data.type === 'recording_step') {
-                    if (recordingContext === 'lock' && recordingState.active && recordingState.mode === 'physical') {
-                        recordingState.buffer = data.record_buffer || [];
-                        renderRecordingBadges();
-                    } else if (recordingContext === 'combo' && comboRecording.active && comboRecording.mode === 'physical') {
-                        comboRecording.buffer = data.record_buffer || [];
-                        renderComboRecBadges();
-                    }
-                } else if (data.type === 'event') {
-                    const scancode = (data.last_scancode || '').toLowerCase();
-                    const isMapped = data.is_mapped;
-                    const serverBtnName = data.button_name;
-                    const btnId = data.button_id;
 
-                    const match = currentConfig.buttons.find(b => b.scancode.toLowerCase() === scancode);
-
-                    if (match && match.id) {
-                        flashVirtualKey(match.id);
-                    } else if (btnId) {
-                        flashVirtualKey(btnId);
-                    } else {
-                        const led = document.getElementById('remoteLed');
-                        if (led && !led.classList.contains('unlocked-pulse')) {
-                            led.classList.add('red');
-                            setTimeout(() => led.classList.remove('red'), 130);
+                        // ATUALIZAÇÃO DO CAMPO DE HARDWARE APENAS QUANDO NA ABA DE PAREAMENTO DE HARDWARE!
+                        if (activeTab === 'tab-calibrate' && scancode && scancode !== 'sys') {
+                            const pairScanInput = document.getElementById('pairScancode');
+                            if (pairScanInput) pairScanInput.value = scancode;
+                            
+                            const pairNameInput = document.getElementById('pairBtnName');
+                            if (pairNameInput && !pairNameInput.value.trim() && match) {
+                                pairNameInput.value = match.name;
+                            }
+                            
+                            const notice = document.getElementById('hardwarePairStatusNotice');
+                            if (notice) {
+                                notice.innerHTML = `<span style="color:#10b981; font-weight:700;">📡 Sinal capturado: <code>${scancode}</code>! Digite o nome do botão ou selecione à esquerda e clique em Salvar Pareamento.</span>`;
+                            }
                         }
+
+                        if (data.lock_status) updateLockUI(data.lock_status);
+                        updateLogs(data.entry);
                     }
+                };
 
-                    // ATUALIZAÇÃO DO CAMPO DE HARDWARE APENAS QUANDO NA ABA DE PAREAMENTO DE HARDWARE!
-                    if (activeTab === 'tab-calibrate' && scancode && scancode !== 'sys') {
-                        const pairScanInput = document.getElementById('pairScancode');
-                        if (pairScanInput) pairScanInput.value = scancode;
-                        
-                        const pairNameInput = document.getElementById('pairBtnName');
-                        if (pairNameInput && !pairNameInput.value.trim() && match) {
-                            pairNameInput.value = match.name;
-                        }
-                        
-                        const notice = document.getElementById('hardwarePairStatusNotice');
-                        if (notice) {
-                            notice.innerHTML = `<span style="color:#10b981; font-weight:700;">📡 Sinal capturado: <code>${scancode}</code>! Digite o nome do botão ou selecione à esquerda e clique em Salvar Pareamento.</span>`;
-                        }
+                activeEvtSource.onerror = () => {
+                    const pill = document.getElementById('sensorStatus');
+                    const txt = document.getElementById('sensorText');
+                    if (pill) pill.className = 'status-pill locked';
+                    if (txt) txt.innerText = 'Servidor Desconectado (Reconectando em 5s...)';
+
+                    // CRÍTICO: Fechar a conexão morta imediatamente para não acumular
+                    // instâncias em background no navegador gerando vazamento de memória e sockets
+                    if (activeEvtSource) {
+                        try { activeEvtSource.close(); } catch(e) {}
+                        activeEvtSource = null;
                     }
 
-                    if (data.lock_status) updateLockUI(data.lock_status);
-                    updateLogs(data.entry);
+                    if (!sseReconnectTimer) {
+                        sseReconnectTimer = setTimeout(() => {
+                            sseReconnectTimer = null;
+                            connectSSE();
+                        }, 5000);
+                    }
+                };
+            } catch (err) {
+                console.error('Falha ao conectar SSE:', err);
+                if (!sseReconnectTimer) {
+                    sseReconnectTimer = setTimeout(() => {
+                        sseReconnectTimer = null;
+                        connectSSE();
+                    }, 5000);
                 }
-            };
-
-            evtSource.onerror = () => {
-                document.getElementById('sensorStatus').className = 'status-pill locked';
-                document.getElementById('sensorText').innerText = 'Reconectando...';
-                setTimeout(connectSSE, 3000);
-            };
+            }
         }
+
+        // Reconecta automaticamente ao focar na aba se estiver desconectado
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !activeEvtSource) {
+                connectSSE();
+            }
+        });
+
+        // Limpa recursos ao sair da página
+        window.addEventListener('beforeunload', () => {
+            if (sseReconnectTimer) clearTimeout(sseReconnectTimer);
+            if (activeEvtSource) {
+                try { activeEvtSource.close(); } catch(e) {}
+            }
+        });
 
         function updateLogs(entry) {
             if (!entry) return;
