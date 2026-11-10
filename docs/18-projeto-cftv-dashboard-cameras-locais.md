@@ -53,10 +53,16 @@ O CFTV Dashboard roda sob o **Padrão 3 (Container Dedicado em Alpine)** da noss
 | :--- | :--- |
 | **Imagem Base** | `node:20-alpine` com pacote `ffmpeg` nativo ARM64 |
 | **Consumo de RAM Médio** | ~60 MB a 110 MB (dependendo de conexões ativas) |
-| **Limite Rígido (`mem_limit`)** | `180M` (garante que nunca trave o sistema operacional) |
+| **Limite Rígido de RAM (`mem_limit`)** | `180M` (garante que nunca trave o sistema operacional) |
+| **Limite Rígido de CPU (`cpus`)** | `1.5` (impede que o transcode sature os 4 núcleos do H313) |
 | **Reserva (`mem_reservation`)**| `80M` |
+| **Qualidade Padrão** | `SD` (Sub-stream `Extra1` 640x360 a 12 FPS) |
 | **Porta Externa** | `:3333` |
 | **Caminho no Repositório** | `projetos/cftv-dashboard/` |
+
+> [!TIP]
+> **Controle Térmico e de CPU no Allwinner H313:**  
+> O H313 possui 4 núcleos Cortex-A53 com refrigeração passiva. Rodar streams 1080p HEVC a 25 FPS com 4 threads atinge facilmente 99% de CPU e 95°C. Por isso, a versão adaptada roda em modo **SD nativo (Extra1)** a **12 FPS** com **1 thread de FFmpeg por câmera**, derrubando o uso de CPU para ~20-35% e a temperatura para níveis seguros (55°C - 68°C). Se precisar de detalhes pontuais em alta definição, basta clicar no botão de alternar qualidade na interface web.
 
 > [!NOTE]
 > **Compatibilidade Multiplataforma do FFmpeg:**  
