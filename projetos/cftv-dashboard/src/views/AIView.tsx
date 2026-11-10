@@ -529,8 +529,12 @@ export function AIView({ cameras }: AIViewProps) {
   // Contador regressivo dinâmico da janela do Modo Vigia / Encomenda
   useEffect(() => {
     const updateCountdown = () => {
-      if (!masterVigia || !vigiaActiveUntil) {
+      if (!masterVigia) {
         setVigiaTimeRemaining("");
+        return;
+      }
+      if (!vigiaActiveUntil) {
+        setVigiaTimeRemaining("Monitoramento sem limite");
         return;
       }
       const diffMs = vigiaActiveUntil - Date.now();
@@ -540,14 +544,22 @@ export function AIView({ cameras }: AIViewProps) {
         setVigiaTimeRemaining("Expirado");
         return;
       }
-      const totalMins = Math.floor(diffMs / 60000);
+      const totalSecs = Math.floor(diffMs / 1000);
+      const totalMins = Math.floor(totalSecs / 60);
       const hours = Math.floor(totalMins / 60);
       const mins = totalMins % 60;
-      setVigiaTimeRemaining(`${hours > 0 ? `${hours}h ` : ""}${mins}m restantes`);
+      const secs = totalSecs % 60;
+      if (hours > 0) {
+        setVigiaTimeRemaining(`${hours}h ${mins}m restantes`);
+      } else if (mins > 0) {
+        setVigiaTimeRemaining(`${mins}m ${secs}s restantes`);
+      } else {
+        setVigiaTimeRemaining(`${secs}s restantes`);
+      }
     };
 
     updateCountdown();
-    const timer = setInterval(updateCountdown, 10000);
+    const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
   }, [masterVigia, vigiaActiveUntil]);
 
@@ -1444,7 +1456,7 @@ export function AIView({ cameras }: AIViewProps) {
               <div className="flex justify-between items-center text-[11px] text-neutral-400 mb-1.5">
                 <span>Janela de espera:</span>
                 <span className="text-lime-400 font-mono font-bold">
-                  {vigiaDurationHours === 0 ? "Sem limite" : `${vigiaDurationHours}h`}
+                  {vigiaDurationHours === 0 ? "Sem limite" : (vigiaDurationHours === 0.5 ? "30 min" : `${vigiaDurationHours}h`)}
                 </span>
               </div>
               <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 text-[11px]">

@@ -89,7 +89,15 @@ function getAiSettings() {
         } catch (e) {}
       }
 
-      return settings;
+      const remainingSeconds = (settings.masterVigia && settings.vigiaActiveUntil)
+        ? Math.max(0, Math.round((settings.vigiaActiveUntil - Date.now()) / 1000))
+        : null;
+
+      return {
+        ...settings,
+        remainingSeconds,
+        serverTime: Date.now()
+      };
     }
   } catch (err) {
     console.warn('[AI Settings] Erro ao ler ai-settings.json:', err.message);
