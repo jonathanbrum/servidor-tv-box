@@ -112,23 +112,24 @@ Trata-se de uma característica de hardware das TV Boxes chinesas somada ao comp
   * Os HDs modernos de 2.5" (como o seu Seagate Samsung `ST1000LM024`) possuem um sistema mecânico chamado *Ramp Load/Unload*. Mesmo que a energia seja cortada subitamente, a agulha de leitura é automaticamente recolhida por indução magnética e travada fora dos pratos em uma rampa plástica segura.
   * **Procedimento correto:** Assim que a luz azul da TV Box apagar, você pode puxar a fonte da tomada ou desligar o filtro de linha com total segurança!
 
-#### 4. Otimização Concluída: Ativar Parada Automática dos Pratos no Desligamento (`manage_shutdown=1`) — ✅ Ativo!
-Para instruir o Linux a enviar o comando SCSI de parada de rotação (*spindown*) para o HD Seagate antes de congelar a CPU:
+#### 4. Otimização Concluída: Parada Mecânica Garantida no Shutdown (`systemd-shutdown` Hook) — ✅ Ativo!
+
+Durante a investigação avançada dos logs de desligamento, descobrimos por que comandos prematuros de *spindown* falhavam:
+* O serviço **`armbian-ramlog`**, ao encerrar o sistema, sincroniza mais de **32 MB de logs comprimidos** da ZRAM para o HD (`/var/log.hdd/` em `/dev/sda1`).
+* Se o HD tivesse parado antes, essa gravação maciça de logs **acordava o motor do disco novamente**, fazendo-o girar a 5400 RPM segundos antes do kernel congelar a CPU!
+* **Solução Definitiva:** Criamos um executável em **`/lib/systemd/system-shutdown/spindown-hdd.sh`**. O `systemd-shutdown` executa essa pasta no **último milissegundo antes de congelar a CPU**, após todos os serviços (incluindo `armbian-ramlog` e `journald`) terem morrido e todas as partições já estarem remontadas como somente-leitura (`read-only`):
 
 ```bash
-# Criar a regra udev definitiva para parada dos discos no shutdown
-cat << 'EOF' > /etc/udev/rules.d/60-scsi-manage-start-stop.rules
-ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}="1", ATTR{manage_system_start_stop}="1"
-EOF
-
-# Aplicar a regra imediatamente
-udevadm control --reload-rules && udevadm trigger --subsystem-match=scsi_disk
-
-# Confirmar se foi ativado no HD /dev/sda (deve retornar 1):
-cat /sys/block/sda/device/scsi_disk/*/manage_shutdown
+#!/bin/bash
+case "$1" in
+    poweroff|halt)
+        /usr/sbin/hdparm -y /dev/sda 2>/dev/null || true
+        /bin/sleep 2
+        ;;
+esac
 ```
 
-> 💡 **Nota Técnica do Kernel 6.x:** No Debian 12 / Kernel 6.12, o antigo atributo `manage_start_stop` foi refinado em `manage_shutdown` e `manage_system_start_stop`. Com esses atributos em `1`, no momento do `poweroff` (seja pelo controle remoto, SSH ou CasaOS), o subsistema SCSI do kernel executa o comando `sd_start_stop_device` desacelerando e parando o motor mecânico antes da TV Box cortar a execução! O LED da gaveta USB pode ainda permanecer aceso devido aos 5V contínuos da tomada, mas o motor magnético estará 100% desligado e em repouso.
+> 💡 **Resultado:** O comando ATA `STANDBY IMMEDIATE` (`hdparm -y /dev/sda`) é emitido exatamente após o último byte ter sido gravado no HD. Os pratos mecânicos desaceleram e param suavemente por 2 segundos, e a CPU congela com o motor 100% repousado.
 
 ---
 

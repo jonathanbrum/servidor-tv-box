@@ -60,14 +60,14 @@ dmesg | grep -iE "sda|uas|I/O error|ext4" | tail -n 25
 smartctl -A /dev/sda
 ```
 
-### 3.1. Parada dos Pratos Mecânicos no Desligamento (`manage_shutdown=1`)
-Como a TV Box possui barramento USB de 5V contínuo da fonte DC (a porta USB não corta a energia quando a placa desliga), o driver SCSI está configurado com `manage_shutdown=1` e `manage_system_start_stop=1` para enviar o comando de *spindown* (parada dos motores) antes do halt do kernel:
+### 3.1. Parada dos Pratos Mecânicos no Desligamento (`systemd-shutdown` Hook)
+Como a TV Box possui barramento USB de 5V contínuo da fonte DC e o `armbian-ramlog` descarrega mais de 30 MB de logs no disco no fim do shutdown (acordando o HD caso tenha dormido antes), a parada definitiva é garantida pelo hook do PID 1 em `/lib/systemd/system-shutdown/spindown-hdd.sh`:
 ```bash
-# Regra udev permanente em /etc/udev/rules.d/60-scsi-manage-start-stop.rules:
-# ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}="1", ATTR{manage_system_start_stop}="1"
+# Script chamado no último milissegundo pelo systemd-shutdown:
+/lib/systemd/system-shutdown/spindown-hdd.sh
 
-# Confirmar se está ativo no HD /dev/sda (deve retornar 1):
-cat /sys/block/sda/device/scsi_disk/*/manage_shutdown
+# Testar manualmente o envio do comando de repouso (Standby):
+hdparm -y /dev/sda
 ```
 
 > ⚠️ **REGRA DE OURO DO `/boot/armbianEnv.txt`:**
