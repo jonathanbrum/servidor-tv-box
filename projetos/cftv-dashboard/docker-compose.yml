@@ -6,8 +6,18 @@ services:
     restart: unless-stopped
     ports:
       - "3333:3333"
-    env_file:
-      - .env
+    environment:
+      - PORT=${PORT:-3333}
+      - CAM1_NAME=${CAM1_NAME:-Fundos}
+      - CAM1_HOST=${CAM1_HOST:-192.168.1.134}
+      - CAM1_PORT=${CAM1_PORT:-34567}
+      - CAM1_USER=${CAM1_USER:-admin}
+      - CAM1_PASS=${CAM1_PASS:-}
+      - CAM2_NAME=${CAM2_NAME:-Entrada}
+      - CAM2_HOST=${CAM2_HOST:-192.168.0.102}
+      - CAM2_PORT=${CAM2_PORT:-34567}
+      - CAM2_USER=${CAM2_USER:-admin}
+      - CAM2_PASS=${CAM2_PASS:-}
     # Limites rígidos de recursos para respeitar o 1 GB de RAM da TV Box
     deploy:
       resources:
@@ -15,3 +25,4 @@ services:
           memory: 180M
         reservations:
           memory: 80M
+
