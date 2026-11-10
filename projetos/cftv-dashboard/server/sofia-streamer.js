@@ -118,8 +118,8 @@ class SofiaStreamer {
     this.recentTsBuffer = null;
 
     const isHd = this.quality === 'hd';
-    const targetScale = isHd ? '854:480' : '640:360';
-    console.log(`[SofiaStreamer] Conectando ${this.cam.name} (${this.cam.host}:${this.cam.port}) em ${this.quality.toUpperCase()} (${this.streamType}, 12 FPS, ${targetScale})...`);
+    const targetScale = isHd ? '1024:576' : '704:480';
+    console.log(`[SofiaStreamer] Conectando ${this.cam.name} (${this.cam.host}:${this.cam.port}) em ${this.quality.toUpperCase()} (${this.streamType}, 25 FPS, ${targetScale})...`);
 
     this.ffmpeg = spawn(ffmpegPath, [
       '-loglevel', 'error',
@@ -135,8 +135,8 @@ class SofiaStreamer {
       '-f', 'mpegts',
       '-codec:v', 'mpeg1video',
       '-q:v', isHd ? '4' : '6',
-      '-r', '12',
-      '-g', '12',
+      '-r', '25',
+      '-g', '25',
       '-bf', '0',
       '-threads', '1',
       '-flush_packets', '1',
@@ -182,7 +182,10 @@ class SofiaStreamer {
       }
     });
 
-    this.ffmpeg.stderr.on('data', (chunk) => {});
+    this.ffmpeg.stderr.on('data', (chunk) => {
+      const msg = chunk.toString().trim();
+      if (msg) console.warn(`[FFmpeg ${this.cam.name}]:`, msg);
+    });
 
     this.ffmpeg.on('error', (err) => {
       console.warn(`[SofiaStreamer] Erro FFmpeg (${this.cam.name}):`, err.message);
