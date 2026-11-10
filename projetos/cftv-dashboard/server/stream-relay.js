@@ -202,7 +202,7 @@ class StreamRelayManager {
 
       // Se a porta for 34567 (Xiongmai Sofia), usa o streamer contínuo H.265 -> JSMpeg
       if (cam.port === 34567) {
-        const quality = (req.query && req.query.quality) || 'sd';
+        const quality = (req.query && req.query.quality) || 'hd';
         const streamer = this.sofiaStreamers[camId];
         if (streamer) {
           streamer.addClient(ws, quality);

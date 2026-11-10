@@ -27,8 +27,8 @@ class SofiaStreamer {
     this.client = null;
     this.ffmpeg = null;
     this.sessionId = 0;
-    this.quality = 'sd';
-    this.streamType = 'Extra1';
+    this.quality = 'hd';
+    this.streamType = 'Main';
     this.isStreaming = false;
     this.tcpBuffer = Buffer.alloc(0);
     this.mediaBuffer = Buffer.alloc(0);
