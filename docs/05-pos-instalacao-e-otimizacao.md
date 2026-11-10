@@ -88,65 +88,47 @@ Graças ao desbloqueio do driver `usb-storage` (`0x0bc2:0xa003:u`), você pode c
 smartctl -a /dev/sda
 ```
 
-### 5.3. Desligamento do HD USB (Spin-Down Mecânico e Apagamento do LED)
+### 5.3. Desligamento do HD USB: Por que ele continuava girando e como foi solucionado?
 
-Em TV Boxes baseadas no SoC Allwinner H313/H616, as portas USB **não possuem relé de corte físico de energia de 5V** (a linha de 5V continua energizada enquanto a fonte estiver conectada na tomada). 
+Se ao desligar o servidor (seja pelo CasaOS, pelo Controle Remoto IR ou via SSH `poweroff`) você notou que o HD continuava girando ou com a luz acesa, isso se devia a uma conjunção entre a eletrônica da TV Box e o driver USB do Linux:
 
-Para que o HD externo pare totalmente de girar o motor magnético e apague o LED ao desligar (seja pelo CasaOS, pelo Controle Remoto IR ou via SSH `poweroff`), o sistema operacional executa uma cadeia de segurança coordenada pelo `systemd-shutdown`:
+#### 1. A Linha de 5V das Portas USB é Contínua (Hardware)
+* Em computadores convencionais (ATX), a placa-mãe corta a alimentação elétrica dos barramentos USB no desligamento (*Soft Off* / S5).
+* Em TV Boxes chinesas (como a `X96Q v5.1` / Allwinner H313), o conector de 5V da fonte DC é ligado diretamente aos conectores USB sem chaves MOSFET de corte de energia.
+* **Consequência:** Enquanto a fonte estiver conectada na tomada, haverá **5 Volts contínuos** alimentando o case USB. O HD só para se o sistema operacional mandar o comando de repouso antes do processador congelar.
+
+#### 2. A Armadilha do `armbian-ramlog` e a Falha do `hdparm`
+* **Por que desligar antes não funcionava:** O serviço `armbian-ramlog`, ao encerrar, sincroniza mais de 30 MB de logs comprimidos da ZRAM para o HD (`/var/log.hdd/` em `/dev/sda1`). Qualquer tentativa de mandar o disco parar prematuramente fazia o HD **acordar novamente** para salvar os logs!
+* **A incompatibilidade do `hdparm -y`:** Com o quirk USB `usb-storage` ativado para blindar o Seagate ST1000LM024, o comando ATA `hdparm -y` é ignorado pela controladora USB da Seagate (o drive permanece em estado `active/idle`). O que o hardware Seagate realmente aceita é o **comando SCSI nativo `START STOP UNIT`** (`sdparm --command=stop`).
+
+#### 3. Arquitetura Definitiva de Desligamento Seguro — ✅ 100% Ativa!
+
+Implementamos a solução em camadas que funciona uniformemente para **CasaOS**, **Controle Remoto IR** e **terminal SSH**:
 
 1. **Parâmetros de Kernel SCSI (`udev`):**
-   A regra `/etc/udev/rules.d/60-scsi-manage-start-stop.rules` instrui o driver `sd` do kernel Linux a gerenciar o ciclo de vida do disco:
+   A regra `/etc/udev/rules.d/60-scsi-manage-start-stop.rules` instrui o driver SCSI `sd` do Linux a emitir `START_STOP_UNIT` no encerramento:
    ```udev
    ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}=1, ATTR{manage_system_start_stop}=1
    ```
 2. **Gancho de Desligamento Tardio (`/lib/systemd/system-shutdown/spindown-hdd.sh`):**
-   Executado no último estágio do encerramento (após todos os serviços parados e a partição raiz `/` já remontada em `ro`):
-   - Executa `sync` final dos dados;
-   - Envia o comando SCSI nativo `sdparm --command=stop /dev/sda` (a ponte Seagate `0bc2:a003` ignora comandos ATA comuns do `hdparm`, mas aceita o comando SCSI `START STOP UNIT` para recolher as cabeças de leitura e frear o prato com segurança);
-   - Desautoriza as portas USB do host (`echo 0 > /sys/bus/usb/devices/*/authorized`), suspendendo o link lógico USB e apagando completamente a luz de atividade da ponte USB.
-
----
-
-### 5.3. Por que o HD (ou o LED dele) continua ligado quando a luz azul da TV Box apaga?
-
-Se você executou `poweroff` (ou desligou pelo CasaOS), a luz azul da TV Box apagou, mas você notou que o HD continuou com a luz acesa ou vibrando/girando, **fique tranquilo: isso NÃO é um bug do sistema nem defeito do HD!**
-
-Trata-se de uma característica de hardware das TV Boxes chinesas somada ao comportamento padrão do Linux para discos USB:
-
-#### 1. A Linha de 5V das Portas USB é Contínua (Hardware)
-* Em computadores comuns (ATX) ou notebooks, a placa-mãe corta a alimentação elétrica dos conectores USB quando o sistema entra em estado de desligamento (*Soft Off* / S5).
-* Em TV Boxes de baixo custo (como a `X96Q v5.1` / Allwinner H313), o conector de 5V da fonte DC é ligado diretamente às portas USB sem chaves MOSFET de corte de energia.
-* **Consequência:** Enquanto a fonte de alimentação estiver conectada na tomada, haverá **5 Volts contínuos** alimentando a placa controladora USB do case Seagate, mantendo a luz do case acesa.
-
-#### 2. Os Pratos do Motor Continuam Girando? (Comportamento do Driver SCSI)
-* Durante o `poweroff`, o Linux executa o desligamento limpo: encerra os containers Docker, grava todo o cache pendente no disco (`sync`), desmonta todas as partições `ext4` e desliga o processador (apagando o LED azul).
-* Porém, por padrão no driver SCSI/USB do Linux (`sd.c`), o parâmetro `manage_start_stop` vem definido como `0`. Isso significa que o kernel não emite o comando SCSI `START_STOP_UNIT` para desacelerar o motor do disco mecânico antes de congelar a CPU.
-* Como o HD continua recebendo 5V ininterruptos da porta USB e não recebeu o comando de parada, ele permanece em rotação ociosa (*idle*).
-
-#### 3. Isso pode estragar o HD ou corromper dados?
-* **NÃO!** Não há risco de corromper dados nem danificar o disco:
-  * Como a luz azul já apagou, o sistema operacional já encerrou 100% de suas atividades e todas as partições foram desmontadas em segurança.
-  * Os HDs modernos de 2.5" (como o seu Seagate Samsung `ST1000LM024`) possuem um sistema mecânico chamado *Ramp Load/Unload*. Mesmo que a energia seja cortada subitamente, a agulha de leitura é automaticamente recolhida por indução magnética e travada fora dos pratos em uma rampa plástica segura.
-  * **Procedimento correto:** Assim que a luz azul da TV Box apagar, você pode puxar a fonte da tomada ou desligar o filtro de linha com total segurança!
-
-#### 4. Otimização Concluída: Parada Mecânica Garantida no Shutdown (`systemd-shutdown` Hook) — ✅ Ativo!
-
-Durante a investigação avançada dos logs de desligamento, descobrimos por que comandos prematuros de *spindown* falhavam:
-* O serviço **`armbian-ramlog`**, ao encerrar o sistema, sincroniza mais de **32 MB de logs comprimidos** da ZRAM para o HD (`/var/log.hdd/` em `/dev/sda1`).
-* Se o HD tivesse parado antes, essa gravação maciça de logs **acordava o motor do disco novamente**, fazendo-o girar a 5400 RPM segundos antes do kernel congelar a CPU!
-* **Solução Definitiva:** Criamos um executável em **`/lib/systemd/system-shutdown/spindown-hdd.sh`**. O `systemd-shutdown` executa essa pasta no **último milissegundo antes de congelar a CPU**, após todos os serviços (incluindo `armbian-ramlog` e `journald`) terem morrido e todas as partições já estarem remontadas como somente-leitura (`read-only`):
-
-```bash
-#!/bin/bash
-case "$1" in
-    poweroff|halt)
-        /usr/sbin/hdparm -y /dev/sda 2>/dev/null || true
-        /bin/sleep 2
-        ;;
-esac
-```
-
-> 💡 **Resultado:** O comando ATA `STANDBY IMMEDIATE` (`hdparm -y /dev/sda`) é emitido exatamente após o último byte ter sido gravado no HD. Os pratos mecânicos desaceleram e param suavemente por 2 segundos, e a CPU congela com o motor 100% repousado.
+   O `systemd-shutdown` executa este script no **último milissegundo antes de congelar a CPU**, quando todos os serviços (incluindo `armbian-ramlog` e `journald`) já foram encerrados e o sistema de arquivos raiz `/` já foi remontado como somente-leitura (`ro`):
+   ```bash
+   #!/bin/bash
+   case "$1" in
+       poweroff|halt)
+           /bin/sync
+           if [ -x /usr/bin/sdparm ]; then
+               /usr/bin/sdparm --command=stop /dev/sda >/dev/null 2>&1
+           fi
+           /bin/sleep 1
+           for auth in /sys/bus/usb/devices/*/authorized; do
+               [ -f "$auth" ] && echo 0 > "$auth" 2>/dev/null || true
+           done
+           /bin/sleep 1
+           ;;
+   esac
+   ```
+   * **Resultado:** O motor magnético desacelera suavemente até parar (`sdparm`) e, logo em seguida, a porta USB do host é desautorizada (`authorized=0`), cortando o enlace lógico USB e **apagando o LED do case Seagate**!
 
 ---
 
