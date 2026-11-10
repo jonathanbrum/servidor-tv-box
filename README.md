@@ -9,6 +9,7 @@ Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **
 | Quero fazer... | Qual App usar? | Guia Passo a Passo |
 | :--- | :--- | :--- |
 | **Ver todos os meus projetos (Links Locais, Públicos e Notas)** | **Central de Projetos** (`:8090/hub/`) | [👉 Abrir Manual da Central](docs/14-manual-central-de-projetos-hub.md) |
+| **Ter meu próprio "Google Drive" e dar contas para amigos** | **File Browser** (`:8082`) | [👉 Abrir Manual do File Browser](docs/17-manual-filebrowser-drive-pessoal.md) |
 | **Associar um repositório novo do GitHub** (Deploy Automático) | **Portainer** (`Stacks` ➡️ `Repository`) | [👉 Abrir Manual do Portainer](docs/08-manual-portainer-deploy-github.md) |
 | **Criar tabelas no Banco de Dados, Login ou subir um Site HTML/JS** | **PocketBase** (`:8090/_/`) | [👉 Abrir Manual do PocketBase](docs/09-manual-pocketbase-banco-e-api.md) |
 | **Criar uma API rápida, Bot (Telegram/Discord) ou Automação** | **Node-RED** (`:1880`) | [👉 Abrir Manual do Node-RED](docs/10-manual-casaos-e-nodered.md#-parte-2-como-usar-o-node-red-backends-bots-e-automação-sem-código-pesado) |

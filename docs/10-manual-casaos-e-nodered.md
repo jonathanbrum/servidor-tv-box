@@ -8,10 +8,15 @@
 
 O **CasaOS** é a central de controle da sua TV Box. Aqui estão os atalhos que você mais vai usar:
 
-### 1. Ligar, Desligar ou Reiniciar um App (Economizar Memória RAM)
+### 1. Ligar, Desligar ou Escolher o que Inicia com o Sistema (Economizar Memória RAM)
 * Passe o mouse por cima do ícone de qualquer app na tela inicial e clique nos **3 pontinhos (`⋮`)** no canto superior direito do ícone:
   * **Desligar / Parar:** Desliga aquele servidor na hora e libera 100% da memória RAM que ele estava usando (seus dados continuam salvos no HD de 1 TB!).
   * **Reiniciar:** Reinicia o app caso tenha mudado alguma configuração.
+* **💡 Como funciona a inicialização no boot (Ligar a TV Box):**
+  * O CasaOS configura todos os containers por padrão com a política `unless-stopped` ("iniciar a menos que tenha sido parado manualmente").
+  * **Se você deixar o app parado no CasaOS**, ao reiniciar a TV Box ele **permanecerá desligado** e não consumirá RAM.
+  * **Se quiser definir pelo Portainer:** Acesse `http://<IP_DA_TV_BOX>:9000` ➡️ *Containers* ➡️ Clique no container ➡️ Role até *Restart policy* e marque `Do not restart` (`no`) ou `Unless stopped`.
+  * **Se quiser definir via Terminal SSH:** `docker update --restart=no <nome_do_container>`.
 
 ### 2. Ver Logs ou Abrir o Terminal de um App
 * Clique nos **3 pontinhos (`⋮`)** do app ➡️ **`Configurações`**.
