@@ -360,6 +360,8 @@ def run_action_by_id(action_id, button_name="Manual", scancode="SYS", button_id=
                 time.sleep(1.2)
                 subprocess.run(["sync"])
                 subprocess.run(["sync"])
+                subprocess.run(["hdparm", "-y", "/dev/sda"], stderr=subprocess.DEVNULL)
+                time.sleep(1.0)
                 subprocess.run(["systemctl", "poweroff"])
             elif act_cmd == "reboot":
                 desc = "🔄 Reiniciando servidor..."
