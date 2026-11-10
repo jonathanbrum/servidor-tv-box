@@ -88,6 +88,23 @@ Graças ao desbloqueio do driver `usb-storage` (`0x0bc2:0xa003:u`), você pode c
 smartctl -a /dev/sda
 ```
 
+### 5.3. Desligamento do HD USB (Spin-Down Mecânico e Apagamento do LED)
+
+Em TV Boxes baseadas no SoC Allwinner H313/H616, as portas USB **não possuem relé de corte físico de energia de 5V** (a linha de 5V continua energizada enquanto a fonte estiver conectada na tomada). 
+
+Para que o HD externo pare totalmente de girar o motor magnético e apague o LED ao desligar (seja pelo CasaOS, pelo Controle Remoto IR ou via SSH `poweroff`), o sistema operacional executa uma cadeia de segurança coordenada pelo `systemd-shutdown`:
+
+1. **Parâmetros de Kernel SCSI (`udev`):**
+   A regra `/etc/udev/rules.d/60-scsi-manage-start-stop.rules` instrui o driver `sd` do kernel Linux a gerenciar o ciclo de vida do disco:
+   ```udev
+   ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}=1, ATTR{manage_system_start_stop}=1
+   ```
+2. **Gancho de Desligamento Tardio (`/lib/systemd/system-shutdown/spindown-hdd.sh`):**
+   Executado no último estágio do encerramento (após todos os serviços parados e a partição raiz `/` já remontada em `ro`):
+   - Executa `sync` final dos dados;
+   - Envia o comando SCSI nativo `sdparm --command=stop /dev/sda` (a ponte Seagate `0bc2:a003` ignora comandos ATA comuns do `hdparm`, mas aceita o comando SCSI `START STOP UNIT` para recolher as cabeças de leitura e frear o prato com segurança);
+   - Desautoriza as portas USB do host (`echo 0 > /sys/bus/usb/devices/*/authorized`), suspendendo o link lógico USB e apagando completamente a luz de atividade da ponte USB.
+
 ---
 
 ### 5.3. Por que o HD (ou o LED dele) continua ligado quando a luz azul da TV Box apaga?

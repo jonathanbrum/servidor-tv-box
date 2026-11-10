@@ -68,8 +68,7 @@ Como TV Boxes compartilham códigos infravermelhos com TVs da sala (como LG ou S
 A Central possui uma área dedicada para gerenciar todas as automações e APIs do servidor:
 
 1. **Ações do Sistema Pré-configuradas:**
-   - 🛑 **Desligar Servidor (`poweroff`)**: Executa `sync` duplo, desliga o Linux com segurança e mantém o LED vermelho aceso fixo (Standby).
-     > 💡 **Parada Mecânica do HD USB:** Como a porta USB da TV Box mantém 5V contínuos da tomada, para que o motor do HD externo desacelere e entre em repouso automático ao desligar pelo controle remoto, utilize a regra udev `manage_start_stop=1` (ver [Doc 05 - Seção 5.3](05-pos-instalacao-e-otimizacao.md#53-por-que-o-hd-ou-o-led-dele-continua-ligado-quando-a-luz-azul-da-tv-box-apaga)).
+   - 🛑 **Desligar Servidor (`poweroff`)**: Executa `sync` duplo, aciona o LED vermelho de Standby frontal e despacha o encerramento limpo para o systemd (que aciona o spin-down mecânico SCSI e desliga o LED do HD USB via `systemd-shutdown` — ver [Doc 05 - Seção 5.3](05-pos-instalacao-e-otimizacao.md#53-desligamento-do-hd-usb-spin-down-mecanico-e-apagamento-do-led)).
    - 🔄 **Reiniciar TV Box (`reboot`)**: Reinicia o sistema operacional.
    - 🧹 **Limpar Memória RAM (`drop_caches`)**: Executa `echo 3 > /proc/sys/vm/drop_caches`.
 2. **APIs e Contêineres Locais:**
