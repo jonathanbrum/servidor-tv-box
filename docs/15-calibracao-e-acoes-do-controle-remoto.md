@@ -100,7 +100,7 @@ A placa da TV Box `X96Q v5.1` possui um LED frontal duplo (**Bicolor**) comutado
 
 ## 🛠️ 6. Anatomia Técnica e Serviço em Background
 
-- **Sensor e Driver:** O sensor `sunxi-ir` opera no barramento SoC da Allwinner H313 e entrega os eventos brutos em `/dev/input/event5`.
+- **Sensor e Driver:** O sensor `sunxi-ir` opera no barramento SoC da Allwinner H313 e é **auto-detectado dinamicamente** via `/sys/class/rc/rc*/input*/event*` (adaptando-se automaticamente caso o número do nó mude entre reinicializações do sistema, ex: `event0` ou `event5`).
 - **Protocolo de Rádio IR:** Configurado exclusivamente para o protocolo **`nec`** (`ir-keytable -p nec`), eliminando ruídos.
 - **Filtro de Repetição (Debounce):** Configurado em `300ms`, evitando disparos repetidos acidentais.
 - **Servidor Web Dual-Stack (IPv4 + IPv6):** O daemon roda um servidor HTTP multithread assíncrono em `[::]:1886` com `IPV6_V6ONLY = 0`, garantindo conexão instantânea sem timeouts seja resolvido via IPv4 (`http://<IP_DA_TV_BOX>:1886`) ou via mDNS IPv6 do Windows (`http://tvbox.local:1886`).
