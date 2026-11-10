@@ -9,14 +9,35 @@
     "w": 0.9,
     "h": 0.9
   },
-  "durationSeconds": 5,
-  "confidence": 50,
+  "durationSeconds": 3,
+  "confidence": 66,
   "enabledClasses": [
-    "person",
     "car",
+    "person",
     "motorcycle"
   ],
   "soundAlert": true,
   "windowsNotify": true,
-  "webhookUrl": "http://localhost:3000/ia"
+  "webhookUrl": "http://localhost:1880/cftv/alerta",
+  "vigiaDurationHours": 12,
+  "vigiaActiveUntil": null,
+  "fenceName": "Monitoramento Total",
+  "fencePoints": [
+    {
+      "x": 20,
+      "y": 20
+    },
+    {
+      "x": 580,
+      "y": 20
+    },
+    {
+      "x": 569,
+      "y": 309
+    },
+    {
+      "x": 24,
+      "y": 313
+    }
+  ]
 }

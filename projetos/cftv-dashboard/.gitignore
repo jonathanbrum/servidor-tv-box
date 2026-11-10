@@ -1,5 +1,7 @@
 node_modules/
+dist/
 .env
 *.log
 server/tuya-config.json
 scratch/cache/
+CFTV Security Command Center Layout/

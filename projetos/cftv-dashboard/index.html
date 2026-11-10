@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>CFTV Command Center — Central de Monitoramento & IA</title>
+    <meta name="description" content="Central de Monitoramento CFTV com Vigia IA, Cerca Virtual, Modo TV e Diagnóstico de Rede" />
+    <!-- Player JSMpeg para streaming ultra-rápido de baixa latência via WebSocket -->
+    <script src="/js/jsmpeg.min.js"></script>
+    <!-- TensorFlow.js e COCO-SSD (Execução 100% Local no Navegador via WebGL) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

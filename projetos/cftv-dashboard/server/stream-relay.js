@@ -211,18 +211,23 @@ class StreamRelayManager {
         }
       } else {
         // Se for 554, usa o rtsp-relay padrão
-        const subtype = req.query.subtype !== undefined ? parseInt(req.query.subtype, 10) : 0;
+        const isSd = (req.query && req.query.quality === 'sd');
+        const subtype = req.query.subtype !== undefined ? parseInt(req.query.subtype, 10) : (isSd ? 1 : 0);
         const rtspUrl = config.buildRtspUrl(camConfig, { subtype });
+        const flags = isSd
+          ? ['-vf', 'scale=640:360', '-r', '25', '-q', '7', '-b:v', '450k', '-an']
+          : ['-q', '3', '-b:v', '2000k', '-an'];
+
         try {
           const proxy = this.rtspRelay.proxy({
             url: rtspUrl,
             transport: 'tcp',
-            additionalFlags: ['-q', '3', '-b:v', '2000k', '-an']
+            additionalFlags: flags
           });
           proxy(ws, req);
         } catch (err) {
           console.warn(`[StreamRelay] Falha no proxy RTSP para ${camId}, alternando para Sofia loop:`, err.message);
-          this.startXMeyeStreamLoop(camId, ws);
+          this.startXMeyeStreamLoop(camId, ws, req);
         }
       }
     };

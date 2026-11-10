@@ -1,12 +1,17 @@
 {
   "name": "cftv-dashboard",
-  "version": "1.0.0",
-  "description": "Central de Monitoramento Web Local para Câmeras CFTV XMeye via RTSP e WebSockets",
+  "version": "2.0.0",
+  "description": "Central de Monitoramento CFTV com Vigia IA, Modo TV e Diagnóstico de Rede",
   "main": "server/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "server": "node server/index.js",
+    "server:dev": "node --watch server/index.js",
+    "dev": "concurrently -n \"SERVER,VITE\" -c \"cyan,magenta\" \"node server/index.js\" \"vite\"",
+    "dev:ui": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "scan": "node server/scanner.js",
     "compare": "node server/validator.js"
   },
@@ -16,7 +21,9 @@
     "xmeye",
     "dashboard",
     "streaming",
-    "websocket"
+    "websocket",
+    "vite",
+    "react"
   ],
   "author": "",
   "license": "ISC",
@@ -25,7 +32,20 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-ws": "^5.0.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "rtsp-relay": "^1.9.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.2.0"
   }
 }

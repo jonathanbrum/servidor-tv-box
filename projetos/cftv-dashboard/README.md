@@ -39,11 +39,25 @@ No terminal, na pasta do projeto:
 npm install
 ```
 
-### 4. Iniciar o Servidor
-```bash
-npm start
-```
-*(Para modo de desenvolvimento com auto-reload: `npm run dev`)*
+### 4. Execução e Desenvolvimento
+
+- **Modo Desenvolvimento com Vite (Frontend com Hot Reload + Proxy para API):**
+  ```bash
+  npm run dev
+  ```
+  *(Abre em `http://localhost:5173` com HMR instantâneo e proxy reverso para os WebSockets e APIs na porta 3333)*
+
+- **Compilar Frontend para Produção:**
+  ```bash
+  npm run build
+  ```
+  *(Gera os arquivos estáticos ultra-leves na pasta `dist/`)*
+
+- **Iniciar o Servidor de Produção (Node.js servindo o bundle compilado):**
+  ```bash
+  npm start
+  ```
+  *(Executa `server/index.js` servindo os streams RTSP, WebSockets JSMpeg e a interface compilada)*
 
 ### 5. Acessar o Dashboard
 - **No seu computador:**

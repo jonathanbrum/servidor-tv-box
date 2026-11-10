@@ -33,6 +33,7 @@ class SofiaStreamer {
     this.tcpBuffer = Buffer.alloc(0);
     this.mediaBuffer = Buffer.alloc(0);
     this.recentTsBuffer = null;
+    this.initHeaderChunk = null;
     this.reconnectTimer = null;
     this.fpsCount = 0;
     this.fps = 0;
@@ -51,27 +52,41 @@ class SofiaStreamer {
   }
 
   addClient(ws, initialQuality = null) {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+
     this.clients.add(ws);
     console.log(`[SofiaStreamer] Cliente conectado em ${this.cam.name} (${this.cam.id}). Total: ${this.clients.size}`);
 
     if (initialQuality && initialQuality !== this.quality) {
       this.setQuality(initialQuality);
-    } else if (!this.isStreaming) {
+    } else if (!this.isStreaming || !this.ffmpeg) {
       this.start();
-    } else if (this.recentTsBuffer && this.recentTsBuffer.length > 0 && ws.readyState === ws.OPEN) {
-      ws.send(this.recentTsBuffer, { binary: true });
+    } else {
+      // Se acabou de conectar o primeiro cliente ativo enquanto a câmera já estava aberta:
+      if (this.clients.size === 1) {
+        console.log(`[SofiaStreamer] ${this.cam.name}: Primeiro cliente ativo reconectado, reiniciando FFmpeg com Sequence Header fresco...`);
+        this.droppingUntilIFrame = true;
+        this.recentTsBuffer = null;
+        this.startFfmpeg();
+      } else if (this.recentTsBuffer && this.recentTsBuffer.length > 0 && ws.readyState === ws.OPEN) {
+        try { ws.send(this.recentTsBuffer, { binary: true }); } catch (e) {}
+      }
     }
 
     ws.on('close', () => {
       this.clients.delete(ws);
       console.log(`[SofiaStreamer] Cliente desconectado de ${this.cam.name}. Restantes: ${this.clients.size}`);
       if (this.clients.size === 0) {
-        setTimeout(() => {
+        if (this.idleTimer) clearTimeout(this.idleTimer);
+        this.idleTimer = setTimeout(() => {
           if (this.clients.size === 0) {
             console.log(`[SofiaStreamer] Nenhum cliente ativo em ${this.cam.name}, pausando stream para liberar CPU.`);
             this.stop();
           }
-        }, 12000);
+        }, 10000);
       }
     });
 
@@ -86,42 +101,55 @@ class SofiaStreamer {
   }
 
   setQuality(quality) {
-    if (this.quality === quality) {
+    const norm = quality === 'sd' ? 'sd' : 'hd';
+    if (this.quality === norm && this.ffmpeg) {
       if (!this.isStreaming && this.clients.size > 0) {
         this.start();
       }
       return;
     }
-    this.quality = quality;
-    this.streamType = quality === 'hd' ? 'Main' : 'Extra1';
-    console.log(`[SofiaStreamer] ${this.cam.name}: Alternando qualidade para ${quality.toUpperCase()} (${this.streamType})...`);
+    this.quality = norm;
+    this.streamType = 'Main';
+    console.log(`[SofiaStreamer] ${this.cam.name}: Alternando qualidade para ${norm.toUpperCase()}...`);
 
-    if (this.isStreaming) {
-      this.stop();
-      setTimeout(() => {
-        if (this.clients.size > 0 && !this.isStreaming) {
-          this.start();
-        }
-      }, 150);
+    // Se a conexão TCP com a câmera já está ativa, não derrube o socket da câmera!
+    // Apenas reinicie o processo FFmpeg transcodificador para mudar a escala/bitrate.
+    if (this.client && !this.client.destroyed && this.sessionId) {
+      this.droppingUntilIFrame = true;
+      this.recentTsBuffer = null;
+      this.startFfmpeg();
     } else if (this.clients.size > 0) {
       this.start();
     }
   }
 
-  start() {
-    this.stop();
-    this.isStreaming = true;
-    this.status = 'connecting';
-    this.droppingUntilIFrame = false;
-    this.tcpBuffer = Buffer.alloc(0);
-    this.mediaBuffer = Buffer.alloc(0);
-    this.recentTsBuffer = null;
+  stopFfmpeg() {
+    this.initHeaderChunk = null;
+    if (this.ffmpeg) {
+      const proc = this.ffmpeg;
+      this.ffmpeg = null;
+      try {
+        proc.removeAllListeners('exit');
+        if (proc.stdin) {
+          proc.stdin.on('error', () => {});
+          proc.stdin.destroy();
+        }
+        proc.kill('SIGTERM');
+      } catch (e) {}
+    }
+  }
+
+  startFfmpeg() {
+    this.stopFfmpeg();
 
     const isHd = this.quality === 'hd';
-    const targetScale = isHd ? '1024:576' : '704:480';
-    console.log(`[SofiaStreamer] Conectando ${this.cam.name} (${this.cam.host}:${this.cam.port}) em ${this.quality.toUpperCase()} (${this.streamType}, 25 FPS, ${targetScale})...`);
+    const targetScale = isHd ? '1024:576' : '640:360';
+    // O padrão MPEG-1 Video (mpeg1video) requer taxa de quadros padronizada (25 fps).
+    // Taxas não padronizadas como 15 fps causam falha fatal no encoder do FFmpeg.
+    const targetFps = '25';
+    console.log(`[SofiaStreamer] FFmpeg ${this.cam.name} (${this.quality.toUpperCase()}): ${targetFps} FPS, ${targetScale}...`);
 
-    this.ffmpeg = spawn(ffmpegPath, [
+    const ffmpegArgs = [
       '-loglevel', 'error',
       '-err_detect', 'ignore_err',
       '-fflags', 'nobuffer+flush_packets+genpts',
@@ -133,16 +161,24 @@ class SofiaStreamer {
       '-i', 'pipe:0',
       '-vf', `scale=${targetScale}:flags=fast_bilinear`,
       '-f', 'mpegts',
+      '-mpegts_flags', '+resend_headers',
       '-codec:v', 'mpeg1video',
-      '-q:v', isHd ? '4' : '6',
-      '-r', '25',
-      '-g', '25',
+      '-q:v', isHd ? '4' : '7',
+      '-r', targetFps,
+      '-g', targetFps,
       '-bf', '0',
       '-threads', '1',
       '-flush_packets', '1',
-      '-an',
-      'pipe:1'
-    ], { windowsHide: true });
+      '-an'
+    ];
+
+    if (!isHd) {
+      ffmpegArgs.push('-b:v', '450k');
+    }
+
+    ffmpegArgs.push('pipe:1');
+
+    this.ffmpeg = spawn(ffmpegPath, ffmpegArgs, { windowsHide: true });
 
     if (this.ffmpeg.stdin) {
       this.ffmpeg.stdin.on('error', () => {});
@@ -156,7 +192,8 @@ class SofiaStreamer {
 
       if (!firstMpegFrame) {
         firstMpegFrame = true;
-        console.log(`[SofiaStreamer] ${this.cam.name}: Primeiro pacote MPEG-TS entregue com sucesso!`);
+        this.initHeaderChunk = chunk.slice(0, Math.min(chunk.length, 3760));
+        console.log(`[SofiaStreamer] ${this.cam.name} (${this.quality.toUpperCase()}): Primeiro pacote MPEG-TS entregue com sucesso!`);
       }
 
       if (!this.recentTsBuffer) {
@@ -173,11 +210,12 @@ class SofiaStreamer {
 
       for (const ws of this.clients) {
         if (ws.readyState === ws.OPEN) {
-          // Se o socket do cliente estiver muito lento (> 512KB sem drenar), descarta para evitar estouro de memória
           if (ws.bufferedAmount > 512 * 1024) {
             continue;
           }
-          ws.send(chunk, { binary: true });
+          try {
+            ws.send(chunk, { binary: true });
+          } catch (e) {}
         }
       }
     });
@@ -196,6 +234,18 @@ class SofiaStreamer {
         this.scheduleReconnect('FFmpeg finalizou inesperadamente');
       }
     });
+  }
+
+  start() {
+    this.stop();
+    this.isStreaming = true;
+    this.status = 'connecting';
+    this.droppingUntilIFrame = false;
+    this.tcpBuffer = Buffer.alloc(0);
+    this.mediaBuffer = Buffer.alloc(0);
+    this.recentTsBuffer = null;
+
+    this.startFfmpeg();
 
     this.client = new net.Socket();
     this.client.setTimeout(8000);
@@ -428,19 +478,7 @@ class SofiaStreamer {
     }
 
     this.sessionId = 0;
-
-    if (this.ffmpeg) {
-      const proc = this.ffmpeg;
-      this.ffmpeg = null;
-      try {
-        proc.removeAllListeners('exit');
-        if (proc.stdin) {
-          proc.stdin.on('error', () => {});
-          proc.stdin.destroy();
-        }
-        proc.kill('SIGTERM');
-      } catch (e) {}
-    }
+    this.stopFfmpeg();
   }
 }
 

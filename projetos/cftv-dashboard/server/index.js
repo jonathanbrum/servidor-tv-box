@@ -6,6 +6,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const ffmpegPath = require('./ffmpeg-path');
 const config = require('./config');
+const XMeyeClient = require('./xmeye-client');
 const StreamRelayManager = require('./stream-relay');
 const tuyaService = require('./tuya');
 
@@ -39,9 +40,16 @@ const server = http.createServer(app);
 // Inicializa o gerenciador de streams RTSP e WebSocket
 const streamRelay = new StreamRelayManager(app, server);
 
-// Middlewares para JSON e arquivos estáticos da pasta public/
+// Middlewares para JSON e arquivos estáticos (prioriza dist/ do Vite quando construído)
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+
+const distDir = path.join(__dirname, '../dist');
+const publicDir = path.join(__dirname, '../public');
+
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+}
+app.use(express.static(publicDir));
 
 /**
  * PERSISTÊNCIA DAS CONFIGURAÇÕES DO VIGIA IA
@@ -50,12 +58,14 @@ app.use(express.static(path.join(__dirname, '../public')));
 const AI_SETTINGS_FILE = path.join(__dirname, 'ai-settings.json');
 
 const DEFAULT_AI_SETTINGS = {
-  masterVigia: true,
+  masterVigia: false, // Por padrão desligado (sob demanda econômico)
+  vigiaDurationHours: 4, // Janela padrão sugerida (ex: 4h, suportando 0.5h até 12h)
+  vigiaActiveUntil: null, // Timestamp ms de encerramento automático (null = inativo ou contínuo)
   camId: 'cam2',
   sourceType: 'live-cam',
   sourceTitle: 'CAM 2 (Entrada - Ao Vivo)',
   roi: { x: 0.15, y: 0.20, w: 0.70, h: 0.65 },
-  durationSeconds: 5.0,
+  durationSeconds: 5.0, // Segundos de permanência no portão para confirmar campainha
   confidence: 55,
   enabledClasses: ['person', 'car', 'motorcycle'],
   soundAlert: true,
@@ -67,7 +77,19 @@ function getAiSettings() {
   try {
     if (fs.existsSync(AI_SETTINGS_FILE)) {
       const data = fs.readFileSync(AI_SETTINGS_FILE, 'utf8');
-      return { ...DEFAULT_AI_SETTINGS, ...JSON.parse(data) };
+      const settings = { ...DEFAULT_AI_SETTINGS, ...JSON.parse(data) };
+
+      // Se passou da janela temporária configurada (ex: 30m, 1h, 4h, 12h), desativa automaticamente
+      if (settings.masterVigia && settings.vigiaActiveUntil && Date.now() > settings.vigiaActiveUntil) {
+        settings.masterVigia = false;
+        settings.vigiaActiveUntil = null;
+        try {
+          fs.writeFileSync(AI_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
+          console.log('[AI Vigia] Janela temporária expirada. Monitoramento desativado automaticamente para poupar o servidor.');
+        } catch (e) {}
+      }
+
+      return settings;
     }
   } catch (err) {
     console.warn('[AI Settings] Erro ao ler ai-settings.json:', err.message);
@@ -79,6 +101,21 @@ function saveAiSettings(newSettings) {
   try {
     const current = getAiSettings();
     const updated = { ...current, ...newSettings };
+
+    // Se o usuário ativou o vigia e informou a duração desejada (em horas ou minutos)
+    if (newSettings.masterVigia === true) {
+      const hours = newSettings.vigiaDurationHours !== undefined ? Number(newSettings.vigiaDurationHours) : (current.vigiaDurationHours || 4);
+      if (hours > 0) {
+        updated.vigiaDurationHours = hours;
+        updated.vigiaActiveUntil = Date.now() + Math.round(hours * 3600 * 1000);
+      } else {
+        // 0 horas = contínuo (até desativar manualmente)
+        updated.vigiaActiveUntil = null;
+      }
+    } else if (newSettings.masterVigia === false) {
+      updated.vigiaActiveUntil = null;
+    }
+
     fs.writeFileSync(AI_SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf8');
     return updated;
   } catch (err) {
@@ -181,6 +218,34 @@ function broadcastIaAlert(alertData) {
 }
 
 /**
+ * Função Auxiliar para Disparo de Webhooks Externos (Home Assistant, Node-RED, etc.)
+ */
+async function sendWebhookAlert(url, payload) {
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } catch (err) {
+    console.warn(`[IA VIGIA -> Webhook] Falha ao enviar para ${url}:`, err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * ROTA SSE: Stream de Eventos em Tempo Real para Smart TVs e Dashboards
  */
 app.get('/api/ia/events', (req, res) => {
@@ -219,6 +284,18 @@ app.post('/api/ia/alert', (req, res) => {
     tuyaService.triggerAlarm().catch(err => {
       console.error('[IA VIGIA -> Smart Life] Erro ao disparar automação:', err.message);
     });
+  }
+
+  // Disparo automático de Webhook se configurado nas opções da IA
+  const aiCfg = getAiSettings();
+  if (aiCfg.webhookUrl) {
+    sendWebhookAlert(aiCfg.webhookUrl, {
+      event: 'loitering_alert',
+      camera: alertData.camId,
+      target: alertData.targetClass,
+      durationSeconds: alertData.duration,
+      timestamp: alertData.timestamp
+    }).catch(() => {});
   }
 
   res.json({ success: true, clientsNotified: sseClients.size });
@@ -294,49 +371,32 @@ app.post('/api/tuya/trigger', async (req, res) => {
  */
 app.post('/api/ia/trigger-webhook', async (req, res) => {
   const { url, eventName, targetClass, duration, camId } = req.body;
+  const aiCfg = getAiSettings();
+  const targetUrl = url || aiCfg.webhookUrl;
 
-  // Transmite imediatamente o alarme para as TVs conectadas
-  broadcastIaAlert({
-    type: 'alarm',
-    camId: camId || 'cam2',
-    targetClass: targetClass || 'person',
-    duration: duration || 5
-  });
-
-  if (!url) {
-    return res.status(400).json({ success: false, error: 'URL do webhook é obrigatória' });
+  if (!targetUrl) {
+    return res.status(400).json({ success: false, error: 'Nenhuma URL de webhook configurada. Defina uma URL primeiro.' });
   }
 
-  console.log(`[IA VIGIA 🚨] Disparando alerta externo para: ${url} (Evento: ${eventName || 'Permanência'} - ${targetClass})`);
+  console.log(`[IA VIGIA 🚨] Testando webhook para: ${targetUrl} (Evento: ${eventName || 'Teste'} - ${targetClass})`);
 
-  try {
-    const payload = {
-      event: eventName || 'loitering_alert',
-      camera: camId || 'cam2',
-      target: targetClass || 'person',
-      durationSeconds: duration || 5,
-      timestamp: new Date().toISOString()
-    };
+  const payload = {
+    event: eventName || 'loitering_alert',
+    camera: camId || 'cam2',
+    target: targetClass || 'person',
+    durationSeconds: duration || 5,
+    timestamp: new Date().toISOString()
+  };
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
+  const result = await sendWebhookAlert(targetUrl, payload);
+  if (result && result.ok) {
+    res.json({ success: true, url: targetUrl, status: result.status, statusText: result.statusText });
+  } else {
+    res.status(result?.status || 502).json({
+      success: false,
+      url: targetUrl,
+      error: result?.error || `Falha HTTP ${result?.status}: ${result?.statusText}`
     });
-    clearTimeout(timeoutId);
-
-    res.json({
-      success: response.ok,
-      status: response.status,
-      statusText: response.statusText
-    });
-  } catch (err) {
-    console.error('[IA VIGIA] Erro ao chamar webhook:', err.message);
-    res.status(502).json({ success: false, error: err.message });
   }
 });
 
@@ -467,8 +527,6 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-const XMeyeClient = require('./xmeye-client');
-
 /**
  * ROTA DA API: Captura de snapshot HD direto do fluxo RTSP ou nativo XMeye via porta 34567
  */
@@ -535,9 +593,14 @@ app.get('/api/snapshot/:camId', async (req, res) => {
 app.ws('/api/stream/cam1', streamRelay.createStreamHandler('cam1'));
 app.ws('/api/stream/cam2', streamRelay.createStreamHandler('cam2'));
 
-// Rota de fallback para SPA / interface
+// Rota de fallback para SPA / interface (prioriza dist/index.html do Vite)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  const distIndex = path.join(distDir, 'index.html');
+  if (fs.existsSync(distIndex)) {
+    res.sendFile(distIndex);
+  } else {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  }
 });
 
 // Inicialização do servidor
