@@ -1,0 +1,17 @@
+services:
+  cftv-dashboard:
+    build: .
+    image: cftv-dashboard:latest
+    container_name: cftv-dashboard
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    env_file:
+      - .env
+    # Limites rígidos de recursos para respeitar o 1 GB de RAM da TV Box
+    deploy:
+      resources:
+        limits:
+          memory: 180M
+        reservations:
+          memory: 80M

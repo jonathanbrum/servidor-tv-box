@@ -18,6 +18,7 @@ Bem-vindo ao painel de documentação do seu servidor pessoal! Aqui o foco é **
 | **Acessar meus sites com Domínio Próprio (sem abrir portas)** | **Cloudflare Tunnel** (`Zero Trust`) | [👉 Abrir Manual do Cloudflare](docs/11-manual-cloudflare-tunnel.md) |
 | **Ligar/Desligar apps (RAM) ou abrir o HD de 1 TB no Windows** | **CasaOS** (`Painel Principal`) | [👉 Abrir Manual do CasaOS](docs/10-manual-casaos-e-nodered.md#-parte-1-como-usar-o-casaos-no-dia-a-dia-httpip_da_tv_box) |
 | **Calibrar e configurar ações do Controle Remoto** | **Central IR Web** (`:1886`) | [👉 Abrir Manual do Controle](docs/15-calibracao-e-acoes-do-controle-remoto.md) |
+| **Monitorar Câmeras CFTV (Stream WebSocket, Modo TV e IA)** | **CFTV Dashboard** (`:3333`) | [👉 Abrir Manual do CFTV](docs/18-projeto-cftv-dashboard-cameras-locais.md) |
 | **Deixar 10, 20 ou 30 projetinhos ON ao mesmo tempo** | **Arquitetura Multi-Projetos** | [👉 Ver Regras de Ouro de RAM](docs/07-deploy-visual-estilo-vercel.md) |
 
 ---

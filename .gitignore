@@ -1,6 +1,15 @@
 # Arquivos locais privados (nunca sobem para o GitHub)
 CREDENCIAIS_LOCAIS.md
 *.env
-.env*
+.env
+.env.*
+!.env.example
 recuperar_ssd.ps1
 RECUPERAR_SSD.bat
+
+# Dependências e builds
+node_modules/
+*.log
+**/tuya-config.json
+**/scratch/cache/
+

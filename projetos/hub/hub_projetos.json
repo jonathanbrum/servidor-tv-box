@@ -82,5 +82,17 @@
     "url_local": "http://tvbox.local:9000",
     "url_publica": "",
     "notas": "Acesse Stacks para associar novos repositórios Git."
+  },
+  {
+    "id": "cftv",
+    "nome": "CFTV Dashboard (Câmeras)",
+    "icone": "📹",
+    "categoria": "CFTV & Câmeras",
+    "status": "online",
+    "descricao": "Monitoramento em tempo real das câmeras (Fundos e Entrada) via WebSockets e protocolo Sofia/XMeye sem nuvem.",
+    "detalhes": "Porta 3333 | Modo TV (/tv) | Vigia IA (/ia) | ~90 MB RAM",
+    "url_local": "http://tvbox.local:3333",
+    "url_publica": "",
+    "notas": "Modo TV em tela cheia disponível em http://tvbox.local:3333/tv"
   }
 ]

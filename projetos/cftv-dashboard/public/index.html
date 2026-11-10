@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Central de Monitoramento Web Local CFTV para Câmeras XMeye / RTSP sem ActiveX ou plugins.">
+  <title>Central de Monitoramento CFTV — Vigilância Local</title>
+  <link rel="stylesheet" href="css/style.css?v=26">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📹</text></svg>">
+  <!-- TensorFlow.js e COCO-SSD para Modo IA no Dashboard e Modo TV -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+</head>
+<body>
+
+  <!-- CABEÇALHO DA CENTRAL -->
+  <header class="cctv-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+        </svg>
+      </div>
+      <div class="brand-title">
+        <h1>CFTV COMMAND CENTER <span class="badge-live">AO VIVO</span></h1>
+        <p>Monitoramento Local Direto RTSP • Sem Nuvem • Latência Zero</p>
+      </div>
+    </div>
+
+    <div class="header-telemetry">
+      <div class="telemetry-item">
+        <span class="telemetry-label">Hora do Sistema</span>
+        <span class="telemetry-value clock-display" id="liveClock">--:--:--</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">Transmissão</span>
+        <span class="telemetry-value">WEBSOCKET / JSMPEG</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Seletor de Câmeras Ativas (Persistente) -->
+      <div class="view-mode-group" id="headerViewModeGroup">
+        <button class="btn-view-toggle active" id="btnViewCam2" title="Exibir apenas CAM 2 (Entrada) em destaque">
+          🚪 Só Entrada (CAM 2)
+        </button>
+        <button class="btn-view-toggle" id="btnViewCam1" title="Exibir apenas CAM 1 (Fundos)">
+          🌳 Só Fundos (CAM 1)
+        </button>
+        <button class="btn-view-toggle" id="btnViewBoth" title="Exibir 2 Câmeras Lado a Lado">
+          🔲 2 Câmeras
+        </button>
+      </div>
+
+      <button class="btn-header" id="btnHeaderQuality" title="Alternar qualidade do streaming (HD / SD Econômica)">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2V7h2v10zm4-4h-2V7h2v6zm-8-2H6V7h2v4z"/></svg>
+        <span id="labelHeaderQuality">Qualidade: HD</span>
+      </button>
+      <button class="btn-header" id="btnTvMode" title="Ativar Modo TV / Monitor de Parede (100% de tela sem barras)">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+        Modo TV
+      </button>
+      <button class="btn-header" id="btnHeaderIa" style="border-color: rgba(0, 243, 255, 0.4); color: #00f3ff; cursor: pointer;" title="Ativar/Desativar Vigia IA no Monitoramento (Tecla I)">
+        <span style="font-size: 15px;">🤖</span>
+        <span id="labelHeaderIa">Vigia IA: Desligado</span>
+      </button>
+      <a href="/ia" class="btn-header" style="text-decoration: none; opacity: 0.8;" title="Configurar Área da Cerca Virtual e Ajustes">
+        <span>⚙️ Configurar Cerca</span>
+      </a>
+      <button class="btn-header" id="btnRecordings" title="Consultar e assistir gravações armazenadas na memória/SD das câmeras">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+        <span>Gravações (SD Card)</span>
+      </button>
+      <button class="btn-header" id="btnDiagnostics" title="Diagnóstico de Rede e Roteadores">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        Topologia & Rede
+      </button>
+      <button class="btn-header" id="btnGridFullscreen" title="Tela Cheia em Todo o Grid">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        Tela Cheia
+      </button>
+    </div>
+  </header>
+
+  <!-- BARRA DE CONTROLE FLUTUANTE DO MODO SMART TV -->
+  <aside class="tv-control-bar" id="tvControlBar" aria-label="Controles do Modo TV">
+    <div class="tv-bar-actions">
+      <button class="btn-tv-action" id="btnTvCam1" title="Focar Câmera 1 (Fundos)">CAM 1 (Fundos)</button>
+      <button class="btn-tv-action" id="btnTvCam2" title="Focar Câmera 2 (Entrada)">CAM 2 (Entrada)</button>
+      <button class="btn-tv-action active" id="btnTvSplit" title="Ver as 2 Câmeras Lado a Lado">2 Câmeras</button>
+      <button class="btn-tv-action" id="btnTvFit" title="Alternar entre Ajustar Proporção ou Preencher Tela Inteira">Preencher: Não</button>
+      <button class="btn-tv-action" id="btnTvQuality" title="Alternar entre Qualidade Alta (HD) ou Econômica (SD)">Qualidade: HD</button>
+      <button class="btn-tv-action" id="btnTvIa" style="border-color: rgba(0, 243, 255, 0.4); color: #00f3ff;" title="Ativar/Desativar Vigia IA no Modo TV (Tecla I)">🤖 Vigia IA: Desligado</button>
+      <button class="btn-tv-action btn-tv-exit" id="btnExitTv" title="Sair do Modo TV (Esc)">✕ Sair</button>
+    </div>
+  </aside>
+
+  <!-- ÁREA DE VÍDEOS / GRID 1x2 -->
+  <main class="main-viewport">
+    <div class="cctv-grid">
+
+      <!-- ==================== CÂMERA 1: FUNDOS ==================== -->
+      <section class="cam-card" id="cardCam1">
+        <!-- Barra de Informações da Câmera -->
+        <div class="cam-card-header">
+          <div class="cam-info-wrapper">
+            <div class="status-dot online" id="dotCam1"></div>
+            <div class="cam-title-box">
+              <span class="cam-name" id="camNameCam1">CAM 01</span>
+              <span class="cam-meta" id="camMetaCam1">Carregando endereço...</span>
+            </div>
+          </div>
+          <div class="cam-header-badges">
+            <span class="badge-stream-type" id="subtypeBadgeCam1" title="Clique para alternar HD / SD">HD (1080P)</span>
+            <span class="badge-status-text online" id="badgeStatusCam1">Conectando...</span>
+          </div>
+        </div>
+
+        <!-- Viewport do Vídeo -->
+        <div class="cam-viewport" id="viewportCam1">
+          <div class="cam-video-box" id="boxCam1">
+            <!-- Elemento Canvas para JSMpeg / Frames -->
+            <canvas class="cam-canvas" id="canvasCam1"></canvas>
+            <canvas class="cam-ai-overlay" id="aiOverlayCam1" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4;"></canvas>
+
+            <!-- Efeito Flash do Snapshot -->
+            <div class="snapshot-flash" id="flashCam1"></div>
+
+            <!-- Etiqueta minimalista e limpa da Câmera -->
+            <div class="cam-badge-clean">
+              <span class="live-pulse"></span>
+              <span id="osdRecCam1">Fundos</span>
+            </div>
+
+            <!-- Telemetria limpa (FPS e Latência) -->
+            <div class="cam-telemetry-clean">
+              <span id="fpsCam1">-- FPS</span>
+              <span class="sep">•</span>
+              <span id="latencyCam1">--ms</span>
+            </div>
+          </div>
+
+          <!-- Overlay de Reconexão / Offline -->
+          <div class="status-overlay hidden" id="overlayCam1">
+            <div class="status-overlay-icon loading" id="overlayIconCam1">
+              <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </div>
+            <div class="status-overlay-title" id="overlayTitleCam1">Conectando ao Feed RTSP...</div>
+            <div class="status-overlay-desc" id="overlayDescCam1">Estabelecendo túnel de vídeo em tempo real na rede local.</div>
+            <button class="btn-retry" id="btnRetryCam1">Tentar Reconectar</button>
+          </div>
+        </div>
+
+        <!-- Controles Inferiores -->
+        <div class="cam-controls-bar">
+          <div class="controls-group">
+            <button class="btn-cam-action btn-snapshot" id="btnSnapshotCam1" title="Capturar foto instantânea em alta resolução">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+              Foto (PNG)
+            </button>
+            <div class="zoom-controls">
+              <button class="btn-zoom" id="btnZoomInCam1" title="Zoom In">+</button>
+              <button class="btn-zoom" id="btnZoomOutCam1" title="Zoom Out">-</button>
+              <button class="btn-zoom" id="btnZoomResetCam1" title="Reset Zoom">1x</button>
+            </div>
+          </div>
+          <div class="controls-group">
+            <button class="btn-cam-action btn-fullscreen" id="btnFsCam1" title="Maximizar esta câmera (ou clique duplo)">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              Maximizar
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== CÂMERA 2: ENTRADA ==================== -->
+      <section class="cam-card" id="cardCam2">
+        <!-- Barra de Informações da Câmera -->
+        <div class="cam-card-header">
+          <div class="cam-info-wrapper">
+            <div class="status-dot offline" id="dotCam2"></div>
+            <div class="cam-title-box">
+              <span class="cam-name" id="camNameCam2">CAM 02</span>
+              <span class="cam-meta" id="camMetaCam2">Carregando endereço...</span>
+            </div>
+          </div>
+          <div class="cam-header-badges">
+            <span class="badge-stream-type" id="subtypeBadgeCam2" title="Clique para alternar HD / SD">HD (1080P)</span>
+            <span class="badge-status-text offline" id="badgeStatusCam2">Conectando...</span>
+          </div>
+        </div>
+
+        <!-- Viewport do Vídeo -->
+        <div class="cam-viewport" id="viewportCam2">
+          <div class="cam-video-box" id="boxCam2">
+            <!-- Elemento Canvas para JSMpeg / Frames -->
+            <canvas class="cam-canvas" id="canvasCam2"></canvas>
+            <canvas class="cam-ai-overlay" id="aiOverlayCam2" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4;"></canvas>
+
+            <!-- Efeito Flash do Snapshot -->
+            <div class="snapshot-flash" id="flashCam2"></div>
+
+            <!-- Etiqueta minimalista e limpa da Câmera -->
+            <div class="cam-badge-clean">
+              <span class="live-pulse"></span>
+              <span id="osdRecCam2">Entrada</span>
+            </div>
+
+            <!-- Telemetria limpa (FPS e Latência) -->
+            <div class="cam-telemetry-clean">
+              <span id="fpsCam2">-- FPS</span>
+              <span class="sep">•</span>
+              <span id="latencyCam2">--ms</span>
+            </div>
+          </div>
+
+          <!-- Overlay de Reconexão / Offline -->
+          <div class="status-overlay" id="overlayCam2">
+            <div class="status-overlay-icon loading" id="overlayIconCam2">
+              <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </div>
+            <div class="status-overlay-title" id="overlayTitleCam2">Conectando ao Feed RTSP...</div>
+            <div class="status-overlay-desc" id="overlayDescCam2">Câmera 2 está no Roteador 2. Se o roteador bloquear conexões entre sub-redes, ative Port Forwarding da porta 554 no Roteador 2.</div>
+            <button class="btn-retry" id="btnRetryCam2">Tentar Reconectar</button>
+          </div>
+        </div>
+
+        <!-- Controles Inferiores -->
+        <div class="cam-controls-bar">
+          <div class="controls-group">
+            <button class="btn-cam-action btn-snapshot" id="btnSnapshotCam2" title="Capturar foto instantânea em alta resolução">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+              Foto (PNG)
+            </button>
+            <div class="zoom-controls">
+              <button class="btn-zoom" id="btnZoomInCam2" title="Zoom In">+</button>
+              <button class="btn-zoom" id="btnZoomOutCam2" title="Zoom Out">-</button>
+              <button class="btn-zoom" id="btnZoomResetCam2" title="Reset Zoom">1x</button>
+            </div>
+          </div>
+          <div class="controls-group">
+            <button class="btn-cam-action btn-fullscreen" id="btnFsCam2" title="Maximizar esta câmera (ou clique duplo)">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              Maximizar
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL DE DIAGNÓSTICO E TOPOLOGIA DOS ROTEADORES -->
+  <div class="modal-backdrop" id="modalDiagnostics">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg style="width:20px;height:20px;fill:#3b82f6" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Diagnóstico de Rede & Topologia dos 2 Roteadores
+        </div>
+        <button class="btn-close-modal" id="btnCloseDiag">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="diag-card">
+          <h3>📡 Status de Conectividade em Tempo Real</h3>
+          <table class="diag-table">
+            <thead>
+              <tr>
+                <th>Câmera</th>
+                <th>Endereço IP</th>
+                <th>Porta RTSP</th>
+                <th>Estado TCP</th>
+                <th>Latência</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong id="diagNameCam1">CAM 1</strong></td>
+                <td id="diagIpCam1">--</td>
+                <td id="diagPortCam1">--</td>
+                <td id="diagStatusCam1">Testando...</td>
+                <td id="diagLatencyCam1">--</td>
+              </tr>
+              <tr>
+                <td><strong id="diagNameCam2">CAM 2</strong></td>
+                <td id="diagIpCam2">--</td>
+                <td id="diagPortCam2">--</td>
+                <td id="diagStatusCam2">Testando...</td>
+                <td id="diagLatencyCam2">--</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 14px; text-align: right;">
+            <button class="btn-retry" id="btnRefreshDiag">🔄 Re-testar Portas Agora</button>
+          </div>
+        </div>
+
+        <div class="diag-card">
+          <h3>🌐 Por que a Câmera 2 pode ficar offline?</h3>
+          <div class="hint-box">
+            <strong>Sub-redes Isoladas:</strong> O seu PC e a Câmera 1 estão no <strong>Roteador 1</strong>. A Câmera 2 está conectada no <strong>Roteador 2</strong>. Como o Roteador 2 opera com NAT/Firewall próprio, ele bloqueia conexões de entrada.
+          </div>
+          <div style="margin-top:12px; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
+            <strong>Como resolver em 2 minutos:</strong><br>
+            1. Acesse o painel do <strong>Roteador 2</strong> (onde a Câmera da Entrada está ligada).<br>
+            2. Vá no menu <em>Port Forwarding</em> (Redirecionamento de Portas ou Servidores Virtuais).<br>
+            3. Redirecione a porta externa <strong>554</strong> para o IP local da Câmera 2.<br>
+            4. No arquivo <code>.env</code> deste projeto, defina <code>CAM2_HOST</code> com o IP WAN do Roteador 2.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE GRAVAÇÕES INTERNAS (CARTÃO SD / MEMÓRIA) -->
+  <div class="modal-backdrop" id="modalRecordings">
+    <div class="modal-window recordings-modal-window">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span style="font-size: 1.3rem;">📼</span>
+          <span>Gravações Internas do Equipamento (Cartão SD)</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseRecordings">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Barra de Controles e Filtros -->
+        <div class="rec-filter-bar">
+          <div class="rec-filter-group">
+            <label>Câmera:</label>
+            <select id="recCamSelect" class="rec-input">
+              <option value="cam2" selected>CAM 02 — ENTRADA (Portão)</option>
+              <option value="cam1">CAM 01 — FUNDOS</option>
+            </select>
+          </div>
+          <div class="rec-filter-group">
+            <label>Data:</label>
+            <input type="date" id="recDateInput" class="rec-input">
+          </div>
+          <div class="rec-filter-actions">
+            <button class="btn-rec-action" id="btnRecToday">Hoje</button>
+            <button class="btn-rec-action" id="btnRecYesterday">Ontem</button>
+            <button class="btn-rec-primary" id="btnFetchRecordings">🔍 Buscar Gravações</button>
+          </div>
+        </div>
+
+        <!-- Reprodutor de Vídeo Embutido (Aparece ao clicar em Assistir) -->
+        <div id="recPlayerBox" class="rec-player-box" style="display: none;">
+          <div class="rec-player-header">
+            <span id="recPlayerTitle">▶️ Reproduzindo Gravação</span>
+            <button class="btn-close-player" id="btnCloseRecPlayer" title="Fechar Vídeo">✕ Fechar Player</button>
+          </div>
+          <video id="recVideoTag" controls autoplay playsinline style="width: 100%; max-height: 400px; background: #000; border-radius: 6px;"></video>
+          <div class="rec-player-footer">
+            <span id="recPlayerInfo" class="rec-player-info">Status: Pronto</span>
+            <div style="display: flex; gap: 8px;">
+              <a id="btnAnalyzeInIa" href="/ia" class="btn-rec-ai" target="_blank" title="Abrir esta gravação no Laboratório de IA Local">
+                🤖 Analisar com IA
+              </a>
+              <a id="btnDownloadRecDirect" href="#" class="btn-rec-download" download title="Salvar vídeo em MP4 no seu computador">
+                ⬇️ Baixar MP4
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aviso de Streaming Sob Demanda e Cache Volátil -->
+        <div class="rec-notice-banner">
+          <span style="font-size: 1.2rem;">💡</span>
+          <div>
+            <strong>Streaming Sob Demanda (Sem ocupar disco):</strong> Os vídeos são transmitidos diretamente do hardware da câmera e mantidos em cache volátil (máx. 4 clips). <strong>Nenhum arquivo fica salvo no seu computador</strong> a menos que você clique expressamente em <strong>⬇️ Baixar MP4</strong>.
+          </div>
+        </div>
+
+        <!-- Cabeçalho da Lista / Contador -->
+        <div class="rec-list-header">
+          <span id="recCountLabel">Clique em "Buscar Gravações" para consultar a câmera.</span>
+          <span id="recLoadingSpinner" style="display: none; color: #00f3ff; font-weight: bold;">⏳ Carregando gravações do equipamento...</span>
+        </div>
+
+        <!-- Tabela / Lista de Gravações -->
+        <div class="rec-list-scroll">
+          <table class="rec-table">
+            <thead>
+              <tr>
+                <th>Horário do Vídeo</th>
+                <th>Duração</th>
+                <th>Tipo de Gravação</th>
+                <th style="text-align: right;">Ações Sob Demanda</th>
+              </tr>
+            </thead>
+            <tbody id="recTableBody">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 35px; color: #64748b;">
+                  Selecione a câmera e a data para visualizar os vídeos gravados no cartão SD.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <footer class="cctv-footer">
+    <div class="footer-left">
+      <span>CFTV Dashboard v1.0.0</span>
+      <span>•</span>
+      <span>Express + RTSP Relay + JSMpeg</span>
+      <span>•</span>
+      <span>100% Rede Local</span>
+    </div>
+    <div class="footer-right">
+      <span id="footerWifi" title="Endereço para abrir no celular ou outros computadores da rede Wi-Fi">WI-FI: Carregando...</span>
+      <span style="margin: 0 8px; opacity: 0.5;">•</span>
+      <span id="footerPort">PORTA: 3333</span>
+    </div>
+  </footer>
+
+  <!-- SCRIPTS (Todos Locais - 100% LAN sem internet) -->
+  <script src="js/jsmpeg.min.js"></script>
+  <script src="js/player.js?v=25"></script>
+  <script src="js/app.js?v=25"></script>
+</body>
+</html>

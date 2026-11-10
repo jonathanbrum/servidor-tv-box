@@ -1,0 +1,31 @@
+{
+  "name": "cftv-dashboard",
+  "version": "1.0.0",
+  "description": "Central de Monitoramento Web Local para Câmeras CFTV XMeye via RTSP e WebSockets",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "scan": "node server/scanner.js",
+    "compare": "node server/validator.js"
+  },
+  "keywords": [
+    "cftv",
+    "rtsp",
+    "xmeye",
+    "dashboard",
+    "streaming",
+    "websocket"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tuya/tuya-connector-nodejs": "^2.1.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-ws": "^5.0.2",
+    "rtsp-relay": "^1.9.0",
+    "ws": "^8.18.0"
+  }
+}

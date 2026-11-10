@@ -14,6 +14,7 @@
   * [🚀 Deixar Vários Projetos ON 24/7](docs/07-deploy-visual-estilo-vercel.md)
   * [🎮 Ideias: Jogos, Git e Smart Home](docs/06-arquitetura-homelab-e-servicos.md)
   * [📺 Kiosk Holyrics (Monitor de Igreja)](docs/16-projeto-kiosk-holyrics-monitor-igreja.md)
+  * [📹 CFTV Dashboard (Câmeras e Modo TV)](docs/18-projeto-cftv-dashboard-cameras-locais.md)
 
 * <details><summary><strong>🔧 Instalação da TV Box (Arquivo)</strong></summary>
 

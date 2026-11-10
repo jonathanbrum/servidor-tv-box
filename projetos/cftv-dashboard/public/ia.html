@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vigia IA & Cerca Virtual — CFTV Vision</title>
+  <link rel="stylesheet" href="css/style.css?v=26">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <!-- TensorFlow.js e COCO-SSD (Execução 100% Local no Navegador via WebGL) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <style>
+    :root {
+      --vigia-cyan: #00f3ff;
+      --vigia-amber: #f59e0b;
+      --vigia-red: #ef4444;
+      --vigia-green: #10b981;
+    }
+
+    .ia-container {
+      max-width: 1600px;
+      margin: 15px auto 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .ia-container {
+        grid-template-columns: 1fr;
+        padding: 0 10px;
+        margin: 10px auto 30px auto;
+        gap: 14px;
+      }
+      .viewport-box {
+        min-height: 240px !important;
+      }
+      .preset-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      .ia-card {
+        padding: 14px !important;
+      }
+      .header-actions {
+        width: 100%;
+        display: flex;
+        gap: 6px;
+      }
+      .header-actions .btn-header {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+
+    .ia-card {
+      background: rgba(13, 22, 38, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    /* VIEWPORT DO VÍDEO / CANVAS */
+    .viewport-box {
+      position: relative;
+      background: #050a12;
+      border: 2px solid rgba(0, 243, 255, 0.3);
+      border-radius: 10px;
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    .viewport-box.drawing-mode {
+      cursor: crosshair;
+      border-color: #f59e0b;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+      touch-action: none; /* Impede scroll da tela ao desenhar com o dedo no celular */
+    }
+    .viewport-box.alarm-triggered {
+      animation: alertFlash 0.6s infinite alternate;
+    }
+    @keyframes alertFlash {
+      from { border-color: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.8), inset 0 0 30px rgba(239, 68, 68, 0.4); }
+      to { border-color: #ff0055; box-shadow: 0 0 45px rgba(255, 0, 85, 1), inset 0 0 60px rgba(255, 0, 85, 0.6); }
+    }
+
+    #previewCanvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    /* OVERLAYS NA TELA DO VÍDEO */
+    .viewport-overlay-top {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .pill-badge {
+      background: rgba(5, 10, 18, 0.88);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #00f3ff;
+      font-family: monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(4px);
+    }
+    .pill-badge.active-vigia {
+      border-color: #10b981;
+      color: #34d399;
+      background: rgba(6, 78, 59, 0.7);
+    }
+    .pill-badge.paused-vigia {
+      border-color: #94a3b8;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    /* BARRA DE PROGRESSO DE PERMANÊNCIA (LOITERING) */
+    .loitering-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(5, 10, 18, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+      transition: all 0.25s;
+    }
+    .loitering-hud.warning {
+      border-color: #f59e0b;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+    .loitering-hud.alarm {
+      border-color: #ef4444;
+      background: rgba(69, 10, 10, 0.95);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+    }
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .hud-progress-bg {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hud-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00f3ff, #f59e0b, #ef4444);
+      border-radius: 5px;
+      transition: width 0.15s ease-out;
+    }
+
+    /* FERRAMENTAS DA CERCA */
+    .fence-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .fence-btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-tool {
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      color: #00f3ff;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover {
+      background: rgba(0, 243, 255, 0.2);
+      border-color: #00f3ff;
+      transform: translateY(-1px);
+    }
+    .btn-tool.active {
+      background: #f59e0b;
+      border-color: #fbbf24;
+      color: #050a12;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+    }
+
+    /* SELETOR DE FONTES */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .source-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      color: #cbd5e1;
+      font-size: 11px;
+      text-align: center;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .source-btn:hover, .source-btn.active {
+      border-color: #00f3ff;
+      background: rgba(0, 243, 255, 0.12);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    .source-btn.active {
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+      border-color: #00f3ff;
+    }
+    .source-btn img {
+      width: 100%;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .source-icon {
+      font-size: 26px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* PAINEL DIREITO */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #00f3ff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* MASTER SWITCH */
+    .master-switch-box {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(0, 243, 255, 0.05));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .switch-info strong {
+      display: block;
+      font-size: 15px;
+      color: #e2e8f0;
+    }
+    .switch-info span {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 30px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider-toggle {
+      background-color: #10b981;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+    }
+    input:checked + .slider-toggle:before {
+      transform: translateX(26px);
+    }
+
+    /* CONTROLES E INPUTS */
+    .control-group {
+      margin-bottom: 16px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .control-slider {
+      width: 100%;
+      accent-color: #00f3ff;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .chip.active {
+      background: rgba(0, 243, 255, 0.2);
+      border-color: #00f3ff;
+      color: #00f3ff;
+      font-weight: 600;
+    }
+
+    .webhook-box {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .webhook-input {
+      flex: 1;
+      background: #050a12;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .webhook-input:focus {
+      outline: none;
+      border-color: #00f3ff;
+    }
+    .btn-test {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .btn-test:hover {
+      background: #f59e0b;
+      color: #050a12;
+    }
+
+    /* LOG DE EVENTOS */
+    .events-log {
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      background: #050a12;
+      border-radius: 6px;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .event-item {
+      padding: 6px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 3px solid #00f3ff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .event-item.alarm-event {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABEÇALHO -->
+  <header class="cctv-header">
+    <div class="brand-section">
+      <div class="brand-icon" style="border-color: #00f3ff; color: #00f3ff;">
+        🛡️
+      </div>
+      <div class="brand-title">
+        <h1>VIGIA INTELIGENTE & CERCA VIRTUAL <span class="badge-live" style="background: rgba(0, 243, 255, 0.2); color: #00f3ff; border-color: #00f3ff;">IA LOCAL</span></h1>
+        <p>Detecção de Permanência / Vadiagem (Pessoas & Veículos > 5s) • Sem Nuvem • 100% Offline</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-header" id="btnFullscreenTv" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc; cursor: pointer;" title="Modo TV / Tela Cheia">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+        Modo TV
+      </button>
+      <a href="/" class="btn-header" style="text-decoration: none;">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Voltar ao CFTV
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <div class="ia-container">
+
+    <!-- COLUNA ESQUERDA: VIEWPORT DE VÍDEO E FERRAMENTAS -->
+    <div class="ia-card">
+
+      <!-- VIEWPORT PRINCIPAL COM CANVAS E HUD -->
+      <div class="viewport-box" id="viewportBox">
+        <!-- Top Overlay -->
+        <div class="viewport-overlay-top">
+          <div class="pill-badge" id="badgeVigiaStatus">
+            <span class="status-dot" id="dotVigia"></span>
+            <span id="textVigiaStatus">Vigia Ativo</span>
+          </div>
+          <div class="pill-badge">
+            <span id="aiModelStatus">Carregando IA...</span>
+            <span style="opacity: 0.5;">|</span>
+            <span id="aiInferenceTime">-- ms</span>
+            <span style="opacity: 0.5;">|</span>
+            <span id="activeSourceLabel">CAM 2 (Entrada)</span>
+          </div>
+        </div>
+
+        <!-- Canvas Principal -->
+        <canvas id="previewCanvas"></canvas>
+
+        <!-- HUD Inferior de Permanência (Loitering) -->
+        <div class="loitering-hud" id="loiteringHud">
+          <div class="hud-header">
+            <span id="hudTargetText">Área de Monitoramento Livre</span>
+            <span id="hudTimerText">0.0s / 5.0s</span>
+          </div>
+          <div class="hud-progress-bg">
+            <div class="hud-progress-bar" id="hudProgressBar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARRA DE FERRAMENTAS DA CERCA VIRTUAL -->
+      <div class="fence-toolbar">
+        <div style="font-size: 13px; font-weight: 600; color: #e2e8f0; display: flex; align-items: center; gap: 6px;">
+          <span>📐 Cerca Virtual (Área de Alerta):</span>
+          <span id="drawInstructions" style="font-size: 11px; color: #f59e0b; font-weight: normal; display: none;">Clique e arraste no vídeo para delimitar a área</span>
+        </div>
+        <div class="fence-btn-group">
+          <button class="btn-tool" id="btnToggleDraw" title="Desenhar um novo retângulo de monitoramento">
+            ✏️ Desenhar Área
+          </button>
+          <button class="btn-tool" id="btnPresetCenter" title="Centralizar área no meio do portão">
+            🎯 Área Central
+          </button>
+          <button class="btn-tool" id="btnPresetFull" title="Monitorar o enquadramento inteiro">
+            🔲 Tela Toda
+          </button>
+          <button class="btn-tool" id="btnResetRoi" title="Resetar área para o padrão">
+            🔄 Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- SELETOR DE CÂMERA E CENÁRIOS DE TESTE -->
+      <h3 style="margin-top: 18px; font-size: 14px; color: #e2e8f0; display: flex; align-items: center; gap: 6px;">
+        📹 Selecionar Câmera / Cenário para Monitorar:
+      </h3>
+      <div class="sources-grid">
+        <button class="source-btn active" data-action="live-cam" data-cam="cam2" data-title="CAM 2 (Entrada - Ao Vivo)">
+          <div class="source-icon">🚪</div>
+          <span>CAM 2 (Entrada)</span>
+          <small style="color: #10b981;">● Ao Vivo</small>
+        </button>
+
+        <button class="source-btn" data-action="live-cam" data-cam="cam1" data-title="CAM 1 (Fundos - Ao Vivo)">
+          <div class="source-icon">🌳</div>
+          <span>CAM 1 (Fundos)</span>
+          <small style="color: #10b981;">● Ao Vivo</small>
+        </button>
+
+        <button class="source-btn" data-action="play-video" data-video="/samples/gravacao_cam2_h264.mp4" data-title="Vídeo SD Card (15s Loop)">
+          <div class="source-icon" style="color: #c084fc;">▶️</div>
+          <span>Vídeo SD (15s)</span>
+          <small style="color: #c084fc;">Cenário Real</small>
+        </button>
+
+        <button class="source-btn" data-src="/samples/entregador_caixa.jpg" data-title="Entregador com Caixa">
+          <img src="/samples/entregador_caixa.jpg" alt="Entregador">
+          <span>Entregador (Caixa)</span>
+        </button>
+
+        <button class="source-btn" data-src="/samples/carro_portao.jpg" data-title="Carro no Portão">
+          <img src="/samples/carro_portao.jpg" alt="Carro">
+          <span>Carro no Portão</span>
+        </button>
+
+        <button class="source-btn" data-src="/samples/pessoa_caminhando.jpg" data-title="Pessoa Caminhando">
+          <img src="/samples/pessoa_caminhando.jpg" alt="Pessoa">
+          <span>Pessoa a Pé</span>
+        </button>
+
+        <label class="source-btn" style="cursor: pointer;">
+          <div class="source-icon">📁</div>
+          <span>Arquivo do PC</span>
+          <input type="file" id="fileInput" accept="image/*,video/*" style="display: none;">
+        </label>
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA: CONFIGURAÇÕES DO VIGIA E ALERTAS -->
+    <div class="ia-card">
+
+      <!-- STATUS DE SINCRONIZAÇÃO COM O SERVIDOR -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <span style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">⚙️ Painel de Controle</span>
+        <span id="syncStatusIndicator" style="color: #10b981; font-family: monospace; transition: all 0.2s;">☁️ Sincronizado com o Servidor</span>
+      </div>
+
+      <!-- MASTER SWITCH -->
+      <div class="master-switch-box">
+        <div class="switch-info">
+          <strong>Vigia Inteligente</strong>
+          <span id="masterStatusDesc">Monitorando permanência ativamente</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="chkMasterVigia" checked>
+          <span class="slider-toggle"></span>
+        </label>
+      </div>
+
+      <!-- PARÂMETROS DA REGRA DE PERMANÊNCIA -->
+      <div class="section-title">⏱️ Regra de Permanência</div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Tempo Parado para Disparar</span>
+          <strong id="labelDuration" style="color: #00f3ff;">5.0 segundos</strong>
+        </div>
+        <input type="range" class="control-slider" id="sliderDuration" min="2" max="20" step="0.5" value="5">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+          <span>2s (Ultra-sensível)</span>
+          <span>5s (Recomendado)</span>
+          <span>20s (Longa espera)</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Alvos Monitorados na Cerca</span>
+        </div>
+        <div class="filter-chips">
+          <span class="chip active" data-class="person">👤 Pessoas</span>
+          <span class="chip active" data-class="car">🚗 Carros</span>
+          <span class="chip active" data-class="motorcycle">🛵 Motos</span>
+          <span class="chip" data-class="bicycle">🚲 Bicicletas</span>
+          <span class="chip" data-class="dog">🐕 Animais</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Confiança Mínima da IA</span>
+          <span id="labelConfidence">55%</span>
+        </div>
+        <input type="range" class="control-slider" id="sliderConfidence" min="30" max="85" value="55">
+      </div>
+
+      <!-- AÇÕES E NOTIFICAÇÕES -->
+      <div class="section-title" style="margin-top: 24px;">🔔 Ações ao Disparar Alerta</div>
+
+      <div class="control-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #e2e8f0;">
+          <input type="checkbox" id="chkSoundAlert" checked style="accent-color: #00f3ff; width: 16px; height: 16px;">
+          🔊 Tocar Sirene / Campainha no Navegador
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #e2e8f0;">
+          <input type="checkbox" id="chkWindowsNotify" checked style="accent-color: #00f3ff; width: 16px; height: 16px;">
+          💻 Notificação Nativa do Windows (Popup)
+        </label>
+      </div>
+
+      <!-- INTEGRAÇÃO CAMPAINHA / TUYA / WEBHOOK -->
+      <div class="control-group" style="margin-top: 10px;">
+        <div class="control-label">
+          <span>Chamar API Externa (Webhook / Campainha)</span>
+        </div>
+        <div class="webhook-box">
+          <input type="text" class="webhook-input" id="inputWebhookUrl" placeholder="http://192.168.1.xxx:8123/... ou webhook" value="">
+          <button class="btn-test" id="btnTestWebhook">Testar</button>
+        </div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+          💡 O servidor enviará um POST JSON automático quando o tempo for atingido.
+        </div>
+      </div>
+
+      <!-- INTEGRAÇÃO SMART LIFE / TUYA OFICIAL -->
+      <div class="control-group" style="margin-top: 14px; border: 1px solid rgba(0, 243, 255, 0.3); padding: 12px; border-radius: 8px; background: rgba(0, 243, 255, 0.04);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #00f3ff;">
+            <input type="checkbox" id="chkTuyaEnabled" checked style="accent-color: #00f3ff; width: 16px; height: 16px;">
+            ⚡ Automação Smart Life
+          </label>
+          <span id="tuyaStatusBadge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399;">🟢 Conectado</span>
+        </div>
+
+        <!-- Seletor do que acionar: Aparelho ou Cena -->
+        <div style="display: flex; gap: 12px; margin-bottom: 8px; font-size: 11px;">
+          <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: #e2e8f0;">
+            <input type="radio" name="tuyaActionType" id="rbActionDevice" value="device" checked style="accent-color: #00f3ff;">
+            Aparelho Direto (Ligar)
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: #e2e8f0;">
+            <input type="radio" name="tuyaActionType" id="rbActionScene" value="scene" style="accent-color: #00f3ff;">
+            Cena (Executar ao Clicar)
+          </label>
+        </div>
+
+        <!-- Caixa de Aparelho Direto -->
+        <div id="tuyaDeviceBox" style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; color: #94a3b8;">Aparelho a Acionar:</span>
+            <button id="btnReloadDevices" style="background: none; border: none; color: #00f3ff; font-size: 10px; cursor: pointer;">🔄 Atualizar aparelhos</button>
+          </div>
+          <select id="selectTuyaDevice" class="webhook-input" style="cursor: pointer; width: 100%;">
+            <option value="">Carregando aparelhos...</option>
+          </select>
+
+          <!-- Comportamento ao disparar alarme -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+            <span style="font-size: 11px; color: #94a3b8;">Modo do Alarme:</span>
+            <select id="selectTuyaActionCommand" class="webhook-input" style="padding: 4px 8px; font-size: 11px; width: 160px; cursor: pointer;">
+              <option value="blink">🚨 Piscar 3 Vezes (Alerta)</option>
+              <option value="on">💡 Apenas Ligar</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <button class="btn-test" id="btnTestBlink" style="flex: 1; border-color: #f43f5e; color: #fb7185; background: rgba(244,63,94,0.1); padding: 5px 0;">🚨 Testar Piscar 3x</button>
+            <button class="btn-test" id="btnTestDevice" style="flex: 1; padding: 5px 0;" title="Testar Disparo no Aparelho">⚡ Testar Ligar</button>
+          </div>
+        </div>
+
+        <!-- Caixa de Cenas -->
+        <div id="tuyaSceneSelector" style="display: none; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; color: #94a3b8;">Cena a Executar:</span>
+            <button id="btnReloadScenes" style="background: none; border: none; color: #00f3ff; font-size: 10px; cursor: pointer;">🔄 Atualizar cenas</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <select id="selectTuyaScene" class="webhook-input" style="cursor: pointer; flex: 1;">
+              <option value="">Carregando cenas...</option>
+            </select>
+            <button class="btn-test" id="btnTestTuyaScene" title="Testar Disparo da Cena">⚡ Testar</button>
+          </div>
+        </div>
+
+        <div id="tuyaFeedback" style="font-size: 11px; color: #38bdf8; display: none; margin-top: 4px;"></div>
+      </div>
+
+      <!-- HISTÓRICO DE DISPAROS -->
+      <div class="section-title" style="margin-top: 24px; justify-content: space-between;">
+        <span>📋 Histórico de Disparos</span>
+        <button id="btnClearLog" style="background: none; border: none; color: #64748b; font-size: 11px; cursor: pointer;">Limpar</button>
+      </div>
+      <div class="events-log" id="eventsLog">
+        <div style="color: #64748b; text-align: center; padding: 15px;">Nenhum disparo registrado ainda.</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ESTADO GLOBAL DA APLICAÇÃO
+    let net = null;
+    let isDrawingRoi = false;
+    let drawStart = null;
+    let currentSource = { type: 'live-cam', camId: 'cam2', title: 'CAM 2 (Entrada)' };
+    let liveTimer = null;
+    let isProcessing = false;
+    let currentImageElement = null;
+
+    // Elemento oculto para reprodução de vídeo
+    const videoElem = document.createElement('video');
+    videoElem.muted = true;
+    videoElem.loop = true;
+    videoElem.playsInline = true;
+    let isVideoMode = false;
+    let videoAnimId = null;
+
+    // CERCA VIRTUAL (ROI - Normalizado de 0 a 1)
+    const DEFAULT_ROI = { x: 0.15, y: 0.20, w: 0.70, h: 0.65 };
+    let roi = Object.assign({}, DEFAULT_ROI);
+
+    // ESTADO DE PERMANÊNCIA (LOITERING)
+    let loiteringStartTime = null;
+    let targetInsideSince = null;
+    let lastAlarmTimestamp = 0;
+    const ALARM_COOLDOWN_MS = 25000; // 25s de descanso antes de apitar de novo para a mesma pessoa
+    let enabledClasses = new Set(['person', 'car', 'motorcycle']);
+
+    // ELEMENTOS DO DOM
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const viewportBox = document.getElementById('viewportBox');
+    const aiModelStatus = document.getElementById('aiModelStatus');
+    const aiInferenceTime = document.getElementById('aiInferenceTime');
+    const activeSourceLabel = document.getElementById('activeSourceLabel');
+    const badgeVigiaStatus = document.getElementById('badgeVigiaStatus');
+    const textVigiaStatus = document.getElementById('textVigiaStatus');
+    const chkMasterVigia = document.getElementById('chkMasterVigia');
+    const masterStatusDesc = document.getElementById('masterStatusDesc');
+    const sliderDuration = document.getElementById('sliderDuration');
+    const labelDuration = document.getElementById('labelDuration');
+    const sliderConfidence = document.getElementById('sliderConfidence');
+    const labelConfidence = document.getElementById('labelConfidence');
+    const chkSoundAlert = document.getElementById('chkSoundAlert');
+    const chkWindowsNotify = document.getElementById('chkWindowsNotify');
+    const inputWebhookUrl = document.getElementById('inputWebhookUrl');
+    const btnTestWebhook = document.getElementById('btnTestWebhook');
+    const loiteringHud = document.getElementById('loiteringHud');
+    const hudTargetText = document.getElementById('hudTargetText');
+    const hudTimerText = document.getElementById('hudTimerText');
+    const hudProgressBar = document.getElementById('hudProgressBar');
+    const eventsLog = document.getElementById('eventsLog');
+    const btnToggleDraw = document.getElementById('btnToggleDraw');
+    const drawInstructions = document.getElementById('drawInstructions');
+    const syncStatusIndicator = document.getElementById('syncStatusIndicator');
+
+    // ==========================================
+    // PERSISTÊNCIA 100% NO SERVIDOR (JSON)
+    // Sincroniza em tempo real com TV, celular e pós-reinício
+    // ==========================================
+    let syncDebounceTimer = null;
+
+    function updateSyncBadge(text, color) {
+      if (syncStatusIndicator) {
+        syncStatusIndicator.textContent = text;
+        syncStatusIndicator.style.color = color;
+      }
+    }
+
+    async function loadSettingsFromServer() {
+      try {
+        updateSyncBadge('🔄 Baixando do servidor...', '#f59e0b');
+        const res = await fetch('/api/ia/settings');
+        if (!res.ok) throw new Error('Status ' + res.status);
+        const s = await res.json();
+
+        // 1. Cerca Virtual (ROI)
+        if (s.roi && typeof s.roi.x === 'number') {
+          roi = s.roi;
+        }
+
+        // 2. Estado do Vigia (Master Switch)
+        if (typeof s.masterVigia === 'boolean') {
+          chkMasterVigia.checked = s.masterVigia;
+          badgeVigiaStatus.className = s.masterVigia ? 'pill-badge active-vigia' : 'pill-badge paused-vigia';
+          textVigiaStatus.textContent = s.masterVigia ? 'Vigia Ativo' : 'Vigia Pausado';
+          masterStatusDesc.textContent = s.masterVigia ? 'Monitorando permanência ativamente' : 'Detecção e alertas suspensos';
+        }
+
+        // 3. Tempo de permanência
+        if (s.durationSeconds) {
+          sliderDuration.value = s.durationSeconds;
+          labelDuration.textContent = `${parseFloat(s.durationSeconds).toFixed(1)} segundos`;
+        }
+
+        // 4. Confiança mínima
+        if (s.confidence) {
+          sliderConfidence.value = s.confidence;
+          labelConfidence.textContent = `${s.confidence}%`;
+        }
+
+        // 5. Classes monitoradas
+        if (Array.isArray(s.enabledClasses)) {
+          enabledClasses = new Set(s.enabledClasses);
+          document.querySelectorAll('.filter-chips .chip').forEach(chip => {
+            const cls = chip.dataset.class;
+            chip.classList.toggle('active', enabledClasses.has(cls));
+          });
+        }
+
+        // 6. Alertas e Webhook
+        if (typeof s.soundAlert === 'boolean') chkSoundAlert.checked = s.soundAlert;
+        if (typeof s.windowsNotify === 'boolean') chkWindowsNotify.checked = s.windowsNotify;
+        if (s.webhookUrl !== undefined) inputWebhookUrl.value = s.webhookUrl;
+
+        // 7. Câmera selecionada
+        if (s.camId) {
+          currentSource = {
+            type: s.sourceType || 'live-cam',
+            camId: s.camId,
+            title: s.sourceTitle || (s.camId === 'cam1' ? 'CAM 1 (Fundos)' : 'CAM 2 (Entrada)')
+          };
+          document.querySelectorAll('.source-btn').forEach(btn => {
+            const isMatch = (btn.dataset.action === 'live-cam' && btn.dataset.cam === s.camId);
+            btn.classList.toggle('active', isMatch);
+          });
+        }
+
+        updateSyncBadge('☁️ Sincronizado com o Servidor', '#10b981');
+      } catch (err) {
+        console.warn('[Vigia IA] Erro ao carregar configurações do servidor:', err);
+        updateSyncBadge('⚠️ Modo Offline Local', '#94a3b8');
+      }
+    }
+
+    function saveSettingsToServer(immediate = false) {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+
+      const doSave = async () => {
+        updateSyncBadge('💾 Salvando no servidor...', '#f59e0b');
+        try {
+          const payload = {
+            masterVigia: chkMasterVigia.checked,
+            camId: currentSource.camId || 'cam2',
+            sourceType: currentSource.type || 'live-cam',
+            sourceTitle: currentSource.title,
+            roi: roi,
+            durationSeconds: parseFloat(sliderDuration.value),
+            confidence: parseInt(sliderConfidence.value, 10),
+            enabledClasses: Array.from(enabledClasses),
+            soundAlert: chkSoundAlert.checked,
+            windowsNotify: chkWindowsNotify.checked,
+            webhookUrl: inputWebhookUrl.value.trim()
+          };
+
+          const res = await fetch('/api/ia/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            updateSyncBadge('✅ Salvo no Servidor', '#10b981');
+            setTimeout(() => updateSyncBadge('☁️ Sincronizado com o Servidor', '#10b981'), 2000);
+          } else {
+            updateSyncBadge('❌ Falha ao salvar', '#ef4444');
+          }
+        } catch (e) {
+          updateSyncBadge('❌ Servidor offline', '#ef4444');
+        }
+      };
+
+      if (immediate) {
+        doSave();
+      } else {
+        syncDebounceTimer = setTimeout(doSave, 400);
+      }
+    }
+
+    // Pede permissão para notificações do Windows se ativado
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // SOM DE SIRENE / CAMPAINHA VIA WEB AUDIO API (100% LOCAL)
+    function playAlarmSound() {
+      if (!chkSoundAlert.checked) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Toca sequência de alerta (Ding-Dong / Alarme)
+        const playTone = (freq, start, duration) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime + start);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + start);
+          osc.stop(audioCtx.currentTime + start + duration);
+        };
+
+        playTone(659.25, 0, 0.25);   // E5
+        playTone(523.25, 0.25, 0.5); // C5
+        playTone(659.25, 0.75, 0.25);
+        playTone(880.00, 1.0, 0.6);  // A5
+      } catch (e) {
+        console.warn('Erro ao tocar áudio:', e);
+      }
+    }
+
+    // DISPARADOR DE NOTIFICAÇÃO DO WINDOWS
+    function showWindowsNotification(title, body) {
+      if (!chkWindowsNotify.checked) return;
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(title, {
+            body: body,
+            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚨</text></svg>'
+          });
+        } catch (e) {}
+      }
+    }
+
+    // DISPARO DE WEBHOOK / TUYA / HOME ASSISTANT
+    async function triggerExternalWebhook(targetClass, duration) {
+      const url = inputWebhookUrl.value.trim();
+      if (!url) return;
+
+      try {
+        await fetch('/api/ia/trigger-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            eventName: 'loitering_alert',
+            camId: currentSource.camId || 'cam2',
+            targetClass: targetClass,
+            duration: duration
+          })
+        });
+      } catch (err) {
+        console.error('Falha ao acionar webhook:', err);
+      }
+    }
+
+    // CARREGAMENTO DA IA LOCAL (COCO-SSD)
+    async function initAI() {
+      try {
+        // Carrega primeiro as configurações salvas no servidor
+        await loadSettingsFromServer();
+
+        aiModelStatus.textContent = 'Carregando Modelo IA...';
+        net = await cocoSsd.load({ base: 'mobilenet_v2' });
+        aiModelStatus.textContent = '✅ IA Pronta';
+        console.log('[Vigia IA] Modelo COCO-SSD carregado com sucesso!');
+        startActiveSource();
+      } catch (err) {
+        aiModelStatus.textContent = '❌ Erro no Modelo';
+        console.error('[Vigia IA] Erro ao carregar IA:', err);
+      }
+    }
+
+    // GERENCIAMENTO DA FONTE ATIVA (CÂMERA AO VIVO OU VÍDEO/TESTE)
+    function startActiveSource() {
+      stopCurrentSource();
+
+      activeSourceLabel.textContent = currentSource.title;
+
+      if (currentSource.type === 'live-cam') {
+        // Modo Câmera Ao Vivo: polling de snapshot a cada ~800ms
+        runLiveCameraLoop();
+      } else if (currentSource.type === 'video') {
+        // Modo Vídeo MP4
+        startVideoLoop(currentSource.src);
+      } else if (currentSource.type === 'image') {
+        // Imagem estática
+        loadStaticImage(currentSource.src);
+      }
+    }
+
+    function stopCurrentSource() {
+      if (liveTimer) {
+        clearTimeout(liveTimer);
+        liveTimer = null;
+      }
+      if (videoAnimId) {
+        cancelAnimationFrame(videoAnimId);
+        videoAnimId = null;
+      }
+      isVideoMode = false;
+      videoElem.pause();
+      isProcessing = false;
+    }
+
+    // LOOP DE CÂMERA AO VIVO
+    function runLiveCameraLoop() {
+      if (currentSource.type !== 'live-cam') return;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const snapUrl = `/api/ia/snapshot/${currentSource.camId}?t=${Date.now()}`;
+
+      img.onload = async () => {
+        if (currentSource.type !== 'live-cam') return;
+        currentImageElement = img;
+        canvas.width = img.naturalWidth || 1280;
+        canvas.height = img.naturalHeight || 720;
+
+        await processFrame(img);
+
+        // Próximo frame em 750ms (otimizado para baixo uso de CPU)
+        liveTimer = setTimeout(runLiveCameraLoop, 750);
+      };
+
+      img.onerror = () => {
+        // Se a câmera falhar momentaneamente, tenta novamente em 2 segundos
+        liveTimer = setTimeout(runLiveCameraLoop, 2000);
+      };
+
+      img.src = snapUrl;
+    }
+
+    // LOOP DE VÍDEO
+    function startVideoLoop(src) {
+      isVideoMode = true;
+      videoElem.src = src;
+      videoElem.onloadeddata = () => {
+        canvas.width = videoElem.videoWidth || 1280;
+        canvas.height = videoElem.videoHeight || 720;
+        videoElem.play();
+        stepVideo();
+      };
+    }
+
+    let lastVideoInfer = 0;
+    async function stepVideo() {
+      if (!isVideoMode || videoElem.paused || videoElem.ended) return;
+
+      const now = performance.now();
+      if (now - lastVideoInfer > 180) { // ~5 FPS para análise suave
+        lastVideoInfer = now;
+        currentImageElement = videoElem;
+        await processFrame(videoElem);
+      }
+      videoAnimId = requestAnimationFrame(stepVideo);
+    }
+
+    // IMAGEM ESTÁTICA
+    function loadStaticImage(src) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = async () => {
+        currentImageElement = img;
+        canvas.width = img.naturalWidth || 1280;
+        canvas.height = img.naturalHeight || 720;
+        await processFrame(img);
+      };
+      img.src = src;
+    }
+
+    // INFERÊNCIA E PROCESSAMENTO DA CERCA VIRTUAL
+    async function processFrame(drawableSource) {
+      if (!net || isProcessing) return;
+      isProcessing = true;
+
+      const t0 = performance.now();
+      let predictions = [];
+      try {
+        predictions = await net.detect(drawableSource);
+      } catch (e) {
+        console.warn('Erro na inferência:', e);
+      }
+      const dt = Math.round(performance.now() - t0);
+      aiInferenceTime.textContent = `${dt} ms`;
+
+      // 1. Desenha o quadro original
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(drawableSource, 0, 0, canvas.width, canvas.height);
+
+      const minConf = parseInt(sliderConfidence.value, 10) / 100;
+
+      // 2. Filtra detecções válidas
+      const validDetections = predictions.filter(p => {
+        return enabledClasses.has(p.class) && p.score >= minConf;
+      });
+
+      // 3. Converte ROI normalizada para pixels atuais do canvas
+      const rx = roi.x * canvas.width;
+      const ry = roi.y * canvas.height;
+      const rw = roi.w * canvas.width;
+      const rh = roi.h * canvas.height;
+
+      // 4. Verifica se algum alvo está DENTRO da cerca virtual
+      let targetInside = null;
+      validDetections.forEach(pred => {
+        const [bx, by, bw, bh] = pred.bbox;
+        const centerX = bx + bw / 2;
+        const centerY = by + bh / 2;
+        const feetY = by + bh;
+
+        const isInside = (centerX >= rx && centerX <= rx + rw && feetY >= ry && feetY <= ry + rh + 20) ||
+                         (centerX >= rx && centerX <= rx + rw && centerY >= ry && centerY <= ry + rh);
+
+        if (isInside && !targetInside) {
+          targetInside = {
+            class: pred.class,
+            score: pred.score,
+            bbox: pred.bbox,
+            centerX,
+            centerY
+          };
+        }
+      });
+
+      const maxDuration = parseFloat(sliderDuration.value);
+      const isVigiaActive = chkMasterVigia.checked;
+
+      // 5. Lógica do Cronômetro de Permanência (Loitering)
+      let elapsedSeconds = 0;
+      let isAlarmState = false;
+
+      if (isVigiaActive && targetInside) {
+        if (!loiteringStartTime) {
+          loiteringStartTime = Date.now();
+        }
+        elapsedSeconds = (Date.now() - loiteringStartTime) / 1000;
+
+        // Atualiza HUD de Permanência
+        const pct = Math.min(100, Math.round((elapsedSeconds / maxDuration) * 100));
+        hudProgressBar.style.width = `${pct}%`;
+        hudTimerText.textContent = `${elapsedSeconds.toFixed(1)}s / ${maxDuration.toFixed(1)}s`;
+
+        const nameLabel = targetInside.class === 'person' ? '👤 PESSOA' : (targetInside.class === 'car' ? '🚗 CARRO' : '🛵 MOTO');
+        hudTargetText.textContent = `⚠️ ${nameLabel} parada na Cerca Virtual`;
+
+        if (elapsedSeconds >= maxDuration) {
+          isAlarmState = true;
+          loiteringHud.className = 'loitering-hud alarm';
+          viewportBox.classList.add('alarm-triggered');
+
+          // Verifica Cooldown antes de disparar o som/webhook
+          const now = Date.now();
+          if (now - lastAlarmTimestamp > ALARM_COOLDOWN_MS) {
+            lastAlarmTimestamp = now;
+            fireLoiteringAlarm(targetInside, elapsedSeconds);
+          }
+        } else {
+          loiteringHud.className = 'loitering-hud warning';
+          viewportBox.classList.remove('alarm-triggered');
+        }
+
+      } else {
+        // Se ninguém estiver na área, reseta gradualmente
+        if (loiteringStartTime && (Date.now() - loiteringStartTime > 1200)) {
+          loiteringStartTime = null;
+        }
+        hudProgressBar.style.width = '0%';
+        hudTimerText.textContent = `0.0s / ${maxDuration.toFixed(1)}s`;
+        hudTargetText.textContent = isVigiaActive ? 'Área de Monitoramento Livre' : 'Vigia Inteligente Pausado';
+        loiteringHud.className = 'loitering-hud';
+        viewportBox.classList.remove('alarm-triggered');
+      }
+
+      // 6. Desenha a Cerca Virtual no Canvas
+      drawVirtualFence(rx, ry, rw, rh, isAlarmState, targetInside, elapsedSeconds, maxDuration);
+
+      // 7. Desenha as caixas delimitadoras dos objetos
+      drawDetections(validDetections, targetInside);
+
+      isProcessing = false;
+    }
+
+    // DESENHO DA CERCA VIRTUAL (ÁREA ROI)
+    function drawVirtualFence(rx, ry, rw, rh, isAlarm, targetInside, elapsed, maxDuration) {
+      ctx.save();
+
+      let strokeColor = 'rgba(0, 243, 255, 0.8)';
+      let fillColor = 'rgba(0, 243, 255, 0.08)';
+
+      if (isAlarm) {
+        strokeColor = '#ef4444';
+        fillColor = 'rgba(239, 68, 68, 0.25)';
+      } else if (targetInside) {
+        strokeColor = '#f59e0b';
+        fillColor = 'rgba(245, 158, 11, 0.15)';
+      }
+
+      // Preenchimento da área
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(rx, ry, rw, rh);
+
+      // Linha tracejada da cerca
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = Math.max(3, Math.round(canvas.width / 350));
+      ctx.setLineDash([12, 6]);
+      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.setLineDash([]); // restaura
+
+      // Cantos destacados (estilo mira militar)
+      const cornerLen = Math.min(24, Math.round(rw * 0.15));
+      ctx.lineWidth = ctx.lineWidth + 2;
+
+      // Top-Left
+      ctx.beginPath();
+      ctx.moveTo(rx, ry + cornerLen); ctx.lineTo(rx, ry); ctx.lineTo(rx + cornerLen, ry);
+      // Top-Right
+      ctx.moveTo(rx + rw - cornerLen, ry); ctx.lineTo(rx + rw, ry); ctx.lineTo(rx + rw, ry + cornerLen);
+      // Bottom-Left
+      ctx.beginPath();
+      ctx.moveTo(rx, ry + rh - cornerLen); ctx.lineTo(rx, ry + rh); ctx.lineTo(rx + cornerLen, ry + rh);
+      // Bottom-Right
+      ctx.moveTo(rx + rw - cornerLen, ry + rh); ctx.lineTo(rx + rw, ry + rh); ctx.lineTo(rx + rw, ry + rh - cornerLen);
+      ctx.stroke();
+
+      // Placa superior da cerca
+      const badgeText = isAlarm ? '🚨 ALARME: PERMANÊNCIA > 5s!' : (targetInside ? `⚠️ ALVO PARADO: ${elapsed.toFixed(1)}s` : '🛡️ CERCA VIRTUAL ATIVA');
+      ctx.font = 'bold 13px monospace';
+      const textMetrics = ctx.measureText(badgeText);
+      const bWidth = textMetrics.width + 20;
+
+      ctx.fillStyle = strokeColor;
+      ctx.fillRect(rx, Math.max(0, ry - 24), bWidth, 24);
+      ctx.fillStyle = '#050a12';
+      ctx.fillText(badgeText, rx + 10, Math.max(16, ry - 7));
+
+      ctx.restore();
+    }
+
+    // DESENHO DAS CAIXAS DE DETECÇÃO (BOUNDING BOXES)
+    function drawDetections(detections, targetInside) {
+      detections.forEach(pred => {
+        const [x, y, w, h] = pred.bbox;
+        const score = Math.round(pred.score * 100);
+        let color = '#00f3ff';
+        let label = pred.class.toUpperCase();
+
+        if (pred.class === 'person') {
+          color = '#00f3ff';
+          label = `PESSOA ${score}%`;
+        } else if (['car', 'motorcycle'].includes(pred.class)) {
+          color = '#a855f7';
+          label = `${pred.class.toUpperCase()} ${score}%`;
+        } else if (['dog', 'cat'].includes(pred.class)) {
+          color = '#10b981';
+          label = `ANIMAL ${score}%`;
+        }
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+
+        // Mira no centro do alvo
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Etiqueta
+        ctx.font = 'bold 11px sans-serif';
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, Math.max(0, y - 18), tw + 8, 18);
+        ctx.fillStyle = '#050a12';
+        ctx.fillText(label, x + 4, Math.max(13, y - 4));
+        ctx.restore();
+      });
+    }
+
+    // DISPARO OFICIAL DO ALARME DE PERMANÊNCIA (> 5s)
+    function fireLoiteringAlarm(target, duration) {
+      console.log(`[ALARME VIGIA 🚨] ${target.class} permaneceu por ${duration.toFixed(1)}s na Cerca Virtual!`);
+
+      // 1. Toca som no navegador
+      playAlarmSound();
+
+      // 2. Notificação no Windows
+      const targetName = target.class === 'person' ? 'Pessoa' : 'Veículo / Carro';
+      showWindowsNotification(
+        `🚨 Alerta de Permanência: ${targetName} parado!`,
+        `${targetName} identificado parado no portão por mais de ${duration.toFixed(1)}s.`
+      );
+
+      // 3. Notifica servidor para transmitir o alarme para a Smart TV (Modo TV) e Dashboards
+      fetch('/api/ia/alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          camId: currentSource.camId || 'cam2',
+          targetClass: target.class,
+          duration: duration
+        })
+      }).catch(() => {});
+
+      // 4. Dispara chamada externa para Campainha / Tuya / Webhook
+      triggerExternalWebhook(target.class, duration);
+
+      // 5. Registra no histórico visual
+      logAlarmEvent(target, duration);
+    }
+
+    // REGISTRO DE EVENTO NO HISTÓRICO
+    function logAlarmEvent(target, duration) {
+      const now = new Date().toLocaleTimeString();
+      const targetName = target.class === 'person' ? '👤 Pessoa' : (target.class === 'car' ? '🚗 Carro' : '🛵 Moto');
+
+      const itemHtml = `
+        <div class="event-item alarm-event">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 14px;">🚨</span>
+            <div>
+              <strong style="color: #ef4444;">${targetName} parado por ${duration.toFixed(1)}s</strong>
+              <div style="font-size: 10px; opacity: 0.8;">${currentSource.title} • Confiança: ${Math.round(target.score * 100)}%</div>
+            </div>
+          </div>
+          <span style="font-size: 10px; color: #94a3b8;">${now}</span>
+        </div>
+      `;
+
+      if (eventsLog.children.length === 1 && eventsLog.children[0].textContent.includes('Nenhum')) {
+        eventsLog.innerHTML = '';
+      }
+      eventsLog.insertAdjacentHTML('afterbegin', itemHtml);
+    }
+
+    // MODO DESENHAR CERCA VIRTUAL (INTERAÇÃO COM O MOUSE NO CANVAS)
+    btnToggleDraw.addEventListener('click', () => {
+      isDrawingRoi = !isDrawingRoi;
+      if (isDrawingRoi) {
+        btnToggleDraw.classList.add('active');
+        btnToggleDraw.textContent = '❌ Cancelar Desenho';
+        drawInstructions.style.display = 'inline';
+        viewportBox.classList.add('drawing-mode');
+      } else {
+        btnToggleDraw.classList.remove('active');
+        btnToggleDraw.textContent = '✏️ Desenhar Área';
+        drawInstructions.style.display = 'none';
+        viewportBox.classList.remove('drawing-mode');
+        drawStart = null;
+      }
+    });
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
+      const clientY = e.touches ? e.touches[0].clientY : (e.changedTouches ? e.changedTouches[0].clientY : e.clientY);
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function onDrawStart(e) {
+      if (!isDrawingRoi) return;
+      if (e.cancelable && e.type === 'touchstart') e.preventDefault();
+      drawStart = getCanvasCoords(e);
+    }
+
+    function onDrawEnd(e) {
+      if (!isDrawingRoi || !drawStart) return;
+      if (e.cancelable && e.type === 'touchend') e.preventDefault();
+      const coords = getCanvasCoords(e);
+
+      const minX = Math.min(drawStart.x, coords.x);
+      const minY = Math.min(drawStart.y, coords.y);
+      const width = Math.abs(coords.x - drawStart.x);
+      const height = Math.abs(coords.y - drawStart.y);
+
+      // Garante área mínima viável (pelo menos 30px)
+      if (width > 30 && height > 30) {
+        roi = {
+          x: Math.max(0, Math.min(1, minX / canvas.width)),
+          y: Math.max(0, Math.min(1, minY / canvas.height)),
+          w: Math.max(0.08, Math.min(1, width / canvas.width)),
+          h: Math.max(0.08, Math.min(1, height / canvas.height))
+        };
+        console.log('[ROI Atualizada via Toque/Mouse]:', roi);
+        saveSettingsToServer(true);
+      }
+
+      drawStart = null;
+      isDrawingRoi = false;
+      btnToggleDraw.classList.remove('active');
+      btnToggleDraw.textContent = '✏️ Desenhar Área';
+      drawInstructions.style.display = 'none';
+      viewportBox.classList.remove('drawing-mode');
+    }
+
+    viewportBox.addEventListener('mousedown', onDrawStart);
+    viewportBox.addEventListener('mouseup', onDrawEnd);
+    viewportBox.addEventListener('touchstart', onDrawStart, { passive: false });
+    viewportBox.addEventListener('touchend', onDrawEnd, { passive: false });
+
+    // PRESETS DE CERCA VIRTUAL
+    document.getElementById('btnPresetCenter').addEventListener('click', () => {
+      roi = { x: 0.20, y: 0.25, w: 0.60, h: 0.55 };
+      saveSettingsToServer(true);
+    });
+
+    document.getElementById('btnPresetFull').addEventListener('click', () => {
+      roi = { x: 0.05, y: 0.05, w: 0.90, h: 0.90 };
+      saveSettingsToServer(true);
+    });
+
+    document.getElementById('btnResetRoi').addEventListener('click', () => {
+      roi = Object.assign({}, DEFAULT_ROI);
+      saveSettingsToServer(true);
+    });
+
+    // MASTER SWITCH TOGGLE
+    chkMasterVigia.addEventListener('change', () => {
+      const active = chkMasterVigia.checked;
+      badgeVigiaStatus.className = active ? 'pill-badge active-vigia' : 'pill-badge paused-vigia';
+      textVigiaStatus.textContent = active ? 'Vigia Ativo' : 'Vigia Pausado';
+      masterStatusDesc.textContent = active ? 'Monitorando permanência ativamente' : 'Detecção e alertas suspensos';
+      saveSettingsToServer(true);
+    });
+
+    // SLIDER DE DURAÇÃO (TEMPO DE PERMANÊNCIA)
+    sliderDuration.addEventListener('input', (e) => {
+      labelDuration.textContent = `${parseFloat(e.target.value).toFixed(1)} segundos`;
+      saveSettingsToServer(false);
+    });
+
+    // SLIDER DE CONFIANÇA
+    sliderConfidence.addEventListener('input', (e) => {
+      labelConfidence.textContent = `${e.target.value}%`;
+      saveSettingsToServer(false);
+    });
+
+    // FILTRO DE CLASSES
+    document.querySelectorAll('.filter-chips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cls = chip.dataset.class;
+        if (chip.classList.contains('active')) {
+          chip.classList.remove('active');
+          enabledClasses.delete(cls);
+        } else {
+          chip.classList.add('active');
+          enabledClasses.add(cls);
+        }
+        saveSettingsToServer(true);
+      });
+    });
+
+    // NOTIFICAÇÕES E WEBHOOK INPUT
+    chkSoundAlert.addEventListener('change', () => saveSettingsToServer(true));
+    chkWindowsNotify.addEventListener('change', () => saveSettingsToServer(true));
+    inputWebhookUrl.addEventListener('input', () => saveSettingsToServer(false));
+
+    // TROCA DE FONTES DE VÍDEO
+    document.querySelectorAll('.source-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (btn.dataset.action === 'live-cam') {
+          currentSource = { type: 'live-cam', camId: btn.dataset.cam, title: btn.dataset.title };
+          saveSettingsToServer(true);
+        } else if (btn.dataset.action === 'play-video') {
+          currentSource = { type: 'video', src: btn.dataset.video, title: btn.dataset.title };
+        } else if (btn.dataset.src) {
+          currentSource = { type: 'image', src: btn.dataset.src, title: btn.dataset.title };
+        }
+        startActiveSource();
+      });
+    });
+
+    // UPLOAD DE ARQUIVO LOCAL
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('video/')) {
+        currentSource = { type: 'video', src: url, title: `Vídeo: ${file.name}` };
+      } else {
+        currentSource = { type: 'image', src: url, title: `Foto: ${file.name}` };
+      }
+      startActiveSource();
+    });
+
+    // ==========================================
+    // INTEGRAÇÃO SMART LIFE / TUYA CLOUD
+    // ==========================================
+    const chkTuyaEnabled = document.getElementById('chkTuyaEnabled');
+    const tuyaStatusBadge = document.getElementById('tuyaStatusBadge');
+    const rbActionDevice = document.getElementById('rbActionDevice');
+    const rbActionScene = document.getElementById('rbActionScene');
+    const tuyaDeviceBox = document.getElementById('tuyaDeviceBox');
+    const selectTuyaDevice = document.getElementById('selectTuyaDevice');
+    const btnTestDevice = document.getElementById('btnTestDevice');
+    const btnReloadDevices = document.getElementById('btnReloadDevices');
+    const tuyaSceneSelector = document.getElementById('tuyaSceneSelector');
+    const selectTuyaScene = document.getElementById('selectTuyaScene');
+    const btnTestTuyaScene = document.getElementById('btnTestTuyaScene');
+    const btnReloadScenes = document.getElementById('btnReloadScenes');
+    const tuyaFeedback = document.getElementById('tuyaFeedback');
+
+    const selectTuyaActionCommand = document.getElementById('selectTuyaActionCommand');
+    const btnTestBlink = document.getElementById('btnTestBlink');
+
+    let currentTuyaConfig = null;
+
+    function showTuyaFeedback(msg, isSuccess = true) {
+      tuyaFeedback.style.display = 'block';
+      tuyaFeedback.style.color = isSuccess ? '#34d399' : '#f87171';
+      tuyaFeedback.textContent = msg;
+      setTimeout(() => { tuyaFeedback.style.display = 'none'; }, 4000);
+    }
+
+    async function loadTuyaConfig() {
+      try {
+        const res = await fetch('/api/tuya/config');
+        const cfg = await res.json();
+        currentTuyaConfig = cfg;
+        chkTuyaEnabled.checked = Boolean(cfg.enabled);
+
+        if (cfg.actionType === 'scene') {
+          rbActionScene.checked = true;
+          tuyaDeviceBox.style.display = 'none';
+          tuyaSceneSelector.style.display = 'flex';
+        } else {
+          rbActionDevice.checked = true;
+          tuyaDeviceBox.style.display = 'flex';
+          tuyaSceneSelector.style.display = 'none';
+        }
+
+        if (cfg.actionCommand && selectTuyaActionCommand) {
+          selectTuyaActionCommand.value = cfg.actionCommand;
+        }
+
+        await loadTuyaDevices(cfg.targetId);
+        await loadTuyaScenes(cfg.sceneId);
+      } catch (err) {
+        console.warn('Erro ao carregar configuração Tuya:', err);
+      }
+    }
+
+    async function loadTuyaDevices(selectedId = null) {
+      selectTuyaDevice.innerHTML = '<option value="">Buscando aparelhos na casa...</option>';
+      try {
+        const res = await fetch('/api/tuya/devices');
+        const data = await res.json();
+        if (data.success && data.devices && data.devices.length > 0) {
+          selectTuyaDevice.innerHTML = '<option value="">Selecione o Aparelho a Ligar...</option>';
+          data.devices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            const statusIcon = d.online ? '🟢' : '⚪';
+            opt.textContent = `${statusIcon} ${d.name} (${d.isOn ? 'Ligado' : 'Desligado'})`;
+            if (selectedId && d.id === selectedId) {
+              opt.selected = true;
+            }
+            selectTuyaDevice.appendChild(opt);
+          });
+        } else {
+          selectTuyaDevice.innerHTML = '<option value="">Nenhum aparelho encontrado na casa</option>';
+        }
+      } catch (err) {
+        selectTuyaDevice.innerHTML = `<option value="">Erro ao buscar aparelhos: ${err.message}</option>`;
+      }
+    }
+
+    async function loadTuyaScenes(selectedId = null) {
+      selectTuyaScene.innerHTML = '<option value="">Buscando cenas no Smart Life...</option>';
+      try {
+        const res = await fetch('/api/tuya/scenes');
+        const data = await res.json();
+        if (data.success && data.scenes && data.scenes.length > 0) {
+          selectTuyaScene.innerHTML = '<option value="">Selecione a Cena do Smart Life...</option>';
+          data.scenes.forEach(sc => {
+            const opt = document.createElement('option');
+            opt.value = sc.id;
+            opt.textContent = sc.name;
+            if (selectedId && (sc.id === selectedId || sc.name === selectedId)) {
+              opt.selected = true;
+            }
+            selectTuyaScene.appendChild(opt);
+          });
+        } else {
+          selectTuyaScene.innerHTML = '<option value="">Nenhuma cena manual criada ainda no Smart Life</option>';
+        }
+      } catch (err) {
+        selectTuyaScene.innerHTML = `<option value="">Erro: ${err.message}</option>`;
+      }
+    }
+
+    rbActionDevice.addEventListener('change', () => {
+      tuyaDeviceBox.style.display = 'flex';
+      tuyaSceneSelector.style.display = 'none';
+      saveTuyaActionType('device');
+    });
+
+    rbActionScene.addEventListener('change', () => {
+      tuyaDeviceBox.style.display = 'none';
+      tuyaSceneSelector.style.display = 'flex';
+      saveTuyaActionType('scene');
+    });
+
+    async function saveTuyaActionType(type) {
+      try {
+        await fetch('/api/tuya/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actionType: type })
+        });
+      } catch (e) {}
+    }
+
+    selectTuyaDevice.addEventListener('change', async () => {
+      const targetId = selectTuyaDevice.value;
+      const targetName = selectTuyaDevice.options[selectTuyaDevice.selectedIndex]?.textContent || '';
+      try {
+        await fetch('/api/tuya/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetId, targetName })
+        });
+        showTuyaFeedback(`✅ Aparelho selecionado para o alarme!`);
+      } catch (err) {
+        showTuyaFeedback(`Erro ao salvar: ${err.message}`, false);
+      }
+    });
+
+    selectTuyaScene.addEventListener('change', async () => {
+      const sceneId = selectTuyaScene.value;
+      const sceneName = selectTuyaScene.options[selectTuyaScene.selectedIndex]?.textContent || '';
+      try {
+        await fetch('/api/tuya/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId, sceneName })
+        });
+        showTuyaFeedback(`✅ Cena selecionada para o alarme!`);
+      } catch (err) {
+        showTuyaFeedback(`Erro ao salvar: ${err.message}`, false);
+      }
+    });
+
+    btnReloadDevices.addEventListener('click', () => loadTuyaDevices(selectTuyaDevice.value));
+    btnReloadScenes.addEventListener('click', () => loadTuyaScenes(selectTuyaScene.value));
+
+    chkTuyaEnabled.addEventListener('change', async () => {
+      try {
+        await fetch('/api/tuya/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: chkTuyaEnabled.checked })
+        });
+      } catch (err) {
+        console.error('Erro ao atualizar status Tuya:', err);
+      }
+    });
+
+    selectTuyaActionCommand.addEventListener('change', async () => {
+      try {
+        await fetch('/api/tuya/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actionCommand: selectTuyaActionCommand.value })
+        });
+        showTuyaFeedback('Modo de alarme atualizado!');
+      } catch (e) {}
+    });
+
+    // Testar piscar 3x
+    btnTestBlink.addEventListener('click', async () => {
+      const deviceId = selectTuyaDevice.value;
+      if (!deviceId) {
+        alert('Selecione um aparelho na lista primeiro!');
+        return;
+      }
+
+      btnTestBlink.textContent = '🚨 Piscando 3x...';
+      try {
+        const res = await fetch('/api/tuya/blink', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, times: 3, intervalMs: 700 })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showTuyaFeedback('🎉 Sucesso! A tomada piscou 3 vezes.');
+        } else {
+          alert('❌ Erro: ' + (data.error || 'Falha ao piscar'));
+        }
+      } catch (err) {
+        alert('❌ Erro de conexão: ' + err.message);
+      } finally {
+        btnTestBlink.textContent = '🚨 Testar Piscar 3x';
+      }
+    });
+
+    // Testar ligar aparelho direto
+    btnTestDevice.addEventListener('click', async () => {
+      const deviceId = selectTuyaDevice.value;
+      if (!deviceId) {
+        alert('Selecione um aparelho na lista primeiro!');
+        return;
+      }
+
+      btnTestDevice.textContent = '⚡ Enviando...';
+      try {
+        const res = await fetch('/api/tuya/control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, powerOn: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showTuyaFeedback('🎉 Sucesso! Comando enviado para o aparelho.');
+          await loadTuyaDevices(deviceId);
+        } else {
+          alert('❌ Erro da Tuya: ' + (data.error || 'Falha ao controlar'));
+        }
+      } catch (err) {
+        alert('❌ Erro de conexão: ' + err.message);
+      } finally {
+        btnTestDevice.textContent = '⚡ Testar';
+      }
+    });
+
+    // Testar cena
+    btnTestTuyaScene.addEventListener('click', async () => {
+      const sceneId = selectTuyaScene.value;
+      if (!sceneId) {
+        alert('Selecione uma cena primeiro!');
+        return;
+      }
+
+      btnTestTuyaScene.textContent = '⚡ Disparando...';
+      try {
+        const res = await fetch('/api/tuya/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showTuyaFeedback('🎉 Sucesso! A cena do Smart Life foi executada agora.');
+        } else {
+          alert('❌ Erro ao disparar cena: ' + (data.error || 'Erro desconhecido'));
+        }
+      } catch (err) {
+        alert('❌ Erro ao conectar com o servidor: ' + err.message);
+      } finally {
+        btnTestTuyaScene.textContent = '⚡ Testar';
+      }
+    });
+
+    // Inicializa status Tuya
+    loadTuyaConfig();
+
+    // BOTÃO DE TESTAR WEBHOOK
+    btnTestWebhook.addEventListener('click', async () => {
+      const url = inputWebhookUrl.value.trim();
+      if (!url) {
+        alert('Por favor, informe a URL do seu Webhook / Campainha primeiro.');
+        return;
+      }
+      btnTestWebhook.textContent = 'Enviando...';
+      try {
+        const res = await fetch('/api/ia/trigger-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            eventName: 'test_trigger',
+            camId: currentSource.camId || 'cam2',
+            targetClass: 'test',
+            duration: 5.0
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Webhook disparado com sucesso! Resposta: ' + data.status);
+        } else {
+          alert('❌ Falha ao acionar webhook: ' + (data.error || 'Código ' + data.status));
+        }
+      } catch (err) {
+        alert('❌ Erro de conexão com o servidor local: ' + err.message);
+      } finally {
+        btnTestWebhook.textContent = 'Testar';
+      }
+    });
+
+    // BOTÃO LIMPAR HISTÓRICO
+    document.getElementById('btnClearLog').addEventListener('click', () => {
+      eventsLog.innerHTML = '<div style="color: #64748b; text-align: center; padding: 15px;">Histórico limpo.</div>';
+    });
+
+    // BOTÃO MODO TV / TELA CHEIA
+    document.getElementById('btnFullscreenTv')?.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // INICIA O SISTEMA
+    initAI();
+  </script>
+</body>
+</html>

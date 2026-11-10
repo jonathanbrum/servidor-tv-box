@@ -1,0 +1,22 @@
+{
+  "masterVigia": true,
+  "camId": "cam2",
+  "sourceType": "live-cam",
+  "sourceTitle": "CAM 2 (Entrada - Ao Vivo)",
+  "roi": {
+    "x": 0.05,
+    "y": 0.05,
+    "w": 0.9,
+    "h": 0.9
+  },
+  "durationSeconds": 5,
+  "confidence": 50,
+  "enabledClasses": [
+    "person",
+    "car",
+    "motorcycle"
+  ],
+  "soundAlert": true,
+  "windowsNotify": true,
+  "webhookUrl": "http://localhost:3000/ia"
+}

@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "accessId": "SUA_TUYA_ACCESS_ID",
+  "accessSecret": "SUA_TUYA_ACCESS_SECRET",
+  "baseUrl": "https://openapi.tuyaus.com",
+  "homeId": "",
+  "actionType": "device",
+  "targetId": "",
+  "targetName": "Tomada Inteligente",
+  "actionCommand": "blink",
+  "sceneId": "",
+  "sceneName": ""
+}

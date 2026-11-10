@@ -1,0 +1,1593 @@
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-card: rgba(17, 24, 39, 0.85);
+  --bg-card-hover: rgba(24, 32, 51, 0.95);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(59, 130, 246, 0.3);
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  
+  --cctv-green: #10b981;
+  --cctv-green-glow: rgba(16, 185, 129, 0.35);
+  --cctv-amber: #f59e0b;
+  --cctv-amber-glow: rgba(245, 158, 11, 0.35);
+  --cctv-red: #ef4444;
+  --cctv-red-glow: rgba(239, 68, 68, 0.35);
+  --cctv-blue: #3b82f6;
+  --cctv-blue-glow: rgba(59, 130, 246, 0.35);
+  
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.15) 0%, transparent 60%),
+    linear-gradient(to bottom, rgba(10, 14, 23, 0.98), rgba(10, 14, 23, 1));
+}
+
+/* Scanline effect sutil de monitor CCTV (desativado para performance fluida em 60fps) */
+body::before {
+  display: none;
+}
+
+/* HEADER DA CENTRAL */
+.cctv-header {
+  background: #111827;
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px var(--cctv-blue-glow);
+}
+
+.brand-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+}
+
+.brand-title h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-live {
+  font-size: 0.65rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.brand-title p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* INFOS DO TOPO */
+.header-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+}
+
+.telemetry-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.telemetry-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cctv-green);
+}
+
+.clock-display {
+  color: #fff;
+}
+
+/* BOTÕES DE CONTROLE GLOBAL */
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-header {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.btn-header:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--cctv-blue);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-header svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+/* CONTAINER PRINCIPAL / GRID 1x2 */
+.main-viewport {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cctv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Foco em Câmera Única (Modo Geral e Modo TV) */
+.cctv-grid.focus-cam1 #cardCam2,
+.cctv-grid.focus-cam2 #cardCam1 {
+  display: none !important;
+}
+
+.cctv-grid.focus-cam1,
+.cctv-grid.focus-cam2 {
+  grid-template-columns: 1fr !important;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Estilo do Seletor de Câmeras no Cabeçalho */
+.view-mode-group {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.btn-view-toggle {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.btn-view-toggle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-view-toggle.active {
+  background: rgba(0, 243, 255, 0.18);
+  color: #00f3ff;
+  border-color: rgba(0, 243, 255, 0.4);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.25);
+}
+
+@media (max-width: 1024px) {
+  .cctv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CARTÃO DA CÂMERA */
+.cam-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.cam-card:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Barra de título do cartão */
+.cam-card-header {
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cam-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cctv-red);
+  box-shadow: 0 0 8px var(--cctv-red-glow);
+  transition: var(--transition);
+}
+
+.status-dot.online {
+  background: var(--cctv-green);
+  box-shadow: 0 0 10px var(--cctv-green-glow);
+}
+
+.status-dot.reconnecting {
+  background: var(--cctv-amber);
+  box-shadow: 0 0 10px var(--cctv-amber-glow);
+  animation: pulse 1s infinite;
+}
+
+.status-dot.offline {
+  background: var(--cctv-red);
+  box-shadow: 0 0 10px var(--cctv-red-glow);
+}
+
+.cam-title-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.cam-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.cam-meta {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.cam-header-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.badge-stream-type {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.badge-stream-type:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.badge-status-text {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-status-text.online {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--cctv-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-status-text.reconnecting {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--cctv-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-status-text.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--cctv-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ÁREA DE VÍDEO (CANVAS / HUD CCTV) */
+.cam-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cam-video-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  overflow: hidden;
+}
+
+.cam-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transform-origin: center center;
+  transition: transform 0.2s ease-out;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ETIQUETA MINIMALISTA E LIMPA DA CÂMERA */
+.cam-badge-clean {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.live-pulse {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+/* TELEMETRIA LIMPA (FPS E LATÊNCIA) */
+.cam-telemetry-clean {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #cbd5e1;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-family: var(--font-mono);
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.cam-telemetry-clean .sep {
+  opacity: 0.35;
+}
+
+/* OVERLAY DE ESTADO (Carregando / Offline / Reconectando) */
+.status-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10, 14, 23, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  padding: 24px;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+.status-overlay.hidden {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.status-overlay-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.status-overlay-icon.loading {
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-overlay-icon.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-overlay-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.status-overlay-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.status-overlay-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  max-width: 380px;
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.btn-retry {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.btn-retry:hover {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  transform: translateY(-1px);
+}
+
+/* BARRA DE CONTROLES INFERIOR DA CÂMERA */
+.cam-controls-bar {
+  padding: 10px 18px;
+  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controls-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-cam-action {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.btn-cam-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-cam-action svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.btn-cam-action.btn-snapshot:hover {
+  border-color: var(--cctv-green);
+  color: var(--cctv-green);
+}
+
+.btn-cam-action.btn-fullscreen:hover {
+  border-color: var(--cctv-blue);
+  color: var(--cctv-blue);
+}
+
+/* ZOOM CONTROLS */
+.zoom-controls {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.btn-zoom {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.btn-zoom:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* FLASH DE SNAPSHOT */
+.snapshot-flash {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+  transition: opacity 0.1s ease-out;
+}
+
+.snapshot-flash.active {
+  opacity: 0.7;
+  transition: none;
+}
+
+/* MODAL DE DIAGNÓSTICO / TOPOLOGIA */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.82);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  padding: 20px;
+}
+
+.modal-backdrop.active {
+  display: flex !important;
+  opacity: 1;
+  pointer-events: auto;
+}
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-window {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 780px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.btn-close-modal:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.diag-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.diag-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diag-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+}
+
+.diag-table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.diag-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hint-box {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #bfdbfe;
+}
+
+/* FOOTER DA PÁGINA */
+.cctv-footer {
+  padding: 12px 24px;
+  background: rgba(10, 14, 23, 0.95);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-right {
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   MODO SMART TV / WALLBOARD (100% TELA, SEM BARRAS, OSD GIGANTE E NITIDEZ)
+   ========================================================================== */
+body.tv-mode {
+  overflow: hidden !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000 !important;
+}
+
+body.tv-mode::before {
+  display: none !important; /* Desativa scanlines para máxima nitidez e FPS na TV */
+}
+
+body.tv-mode .cctv-header,
+body.tv-mode .cctv-footer {
+  display: none !important;
+}
+
+body.tv-mode .main-viewport {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  background: #000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+body.tv-mode .cctv-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  grid-template-rows: 1fr !important;
+  gap: 3px !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #000 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Foco em Câmera Única na TV */
+body.tv-mode .cctv-grid.focus-cam1 #cardCam2,
+body.tv-mode .cctv-grid.focus-cam2 #cardCam1 {
+  display: none !important;
+}
+
+body.tv-mode .cctv-grid.focus-cam1,
+body.tv-mode .cctv-grid.focus-cam2 {
+  grid-template-columns: 1fr !important;
+}
+
+body.tv-mode .cam-card {
+  border-radius: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #000 !important;
+  height: 100% !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+body.tv-mode .cam-card-header,
+body.tv-mode .cam-controls-bar {
+  display: none !important;
+}
+
+body.tv-mode .cam-viewport {
+  flex: 1 !important;
+  height: 100% !important;
+  width: 100% !important;
+  aspect-ratio: auto !important;
+  background: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+}
+
+body.tv-mode .cam-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Etiqueta na Smart TV */
+body.tv-mode .cam-badge-clean {
+  top: 16px !important;
+  left: 18px !important;
+  font-size: 1.05rem !important;
+  padding: 6px 14px !important;
+  background: rgba(0, 0, 0, 0.65) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+body.tv-mode .live-pulse {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+body.tv-mode .cam-telemetry-clean {
+  bottom: 16px !important;
+  right: 18px !important;
+  left: auto !important;
+  font-size: 0.85rem !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+}
+
+/* Modo Preencher Tela Inteira (Cover) vs Proporção 16:9 Original (Contain) */
+body.tv-mode .cam-video-box {
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: auto;
+  position: relative;
+  margin: auto;
+}
+
+body.tv-mode.tv-fit-cover .cam-video-box {
+  aspect-ratio: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.tv-mode.tv-fit-cover .cam-canvas {
+  object-fit: cover !important;
+}
+
+/* Em tela cheia de uma câmera só (1920x1080), ela ocupa 100% da tela 16:9 da TV perfeitamente */
+body.tv-mode .cctv-grid.focus-cam1 .cam-video-box,
+body.tv-mode .cctv-grid.focus-cam2 .cam-video-box {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+}
+
+/* BARRA FLUTUANTE DE CONTROLE PARA SMART TV (Compatível com controle remoto) */
+.tv-control-bar {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 1000;
+  background: rgba(10, 14, 23, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 8px 16px;
+  border-radius: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+  align-items: center;
+  gap: 16px;
+}
+
+body.tv-mode .tv-control-bar {
+  display: flex;
+}
+
+body.tv-mode.controls-visible .tv-control-bar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tv-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-tv-action {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-tv-action:hover,
+.btn-tv-action:focus {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: #3b82f6;
+  color: #fff;
+  transform: scale(1.04);
+  outline: none;
+}
+
+.btn-tv-action.active {
+  background: #2563eb;
+  border-color: #60a5fa;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+}
+
+.btn-tv-action.btn-tv-exit {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.btn-tv-action.btn-tv-exit:hover,
+.btn-tv-action.btn-tv-exit:focus {
+  background: #ef4444;
+  border-color: #f87171;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+}
+
+/* Ocultação de Cursor automática após inatividade no Modo TV */
+body.tv-mode.hide-cursor,
+body.tv-mode.hide-cursor * {
+  cursor: none !important;
+}
+
+/* Toast de Notificação na TV ao Alternar Modo */
+.tv-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 185, 129, 0.95);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  pointer-events: none;
+  animation: fadeToast 4s forwards;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@keyframes fadeToast {
+  0% { opacity: 0; transform: translate(-50%, 25px); }
+  15% { opacity: 1; transform: translate(-50%, 0); }
+  75% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -15px); }
+}
+
+/* ==========================================================================
+   ALERTA DE PERMANÊNCIA IA NO MODO TV & DASHBOARD
+   ========================================================================== */
+.cam-card.cam-alarm-active,
+body.tv-mode .cam-card.cam-alarm-active {
+  animation: tvCamAlarmPulse 0.7s infinite alternate !important;
+  z-index: 100 !important;
+}
+
+@keyframes tvCamAlarmPulse {
+  0% {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.9), inset 0 0 35px rgba(239, 68, 68, 0.4) !important;
+  }
+  100% {
+    border-color: #ff0055 !important;
+    box-shadow: 0 0 50px rgba(255, 0, 85, 1), inset 0 0 70px rgba(255, 0, 85, 0.7) !important;
+  }
+}
+
+.tv-alarm-toast {
+  position: fixed;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(185, 28, 28, 0.96);
+  border: 2px solid #ff4d4d;
+  color: #fff;
+  padding: 14px 30px;
+  border-radius: 40px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: 0 10px 45px rgba(239, 68, 68, 0.8);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  letter-spacing: 0.5px;
+  animation: tvAlarmStrobe 0.7s infinite alternate, fadeToast 12s forwards;
+  pointer-events: none;
+}
+
+@keyframes tvAlarmStrobe {
+  from { transform: translateX(-50%) scale(1); filter: brightness(1); }
+  to { transform: translateX(-50%) scale(1.03); filter: brightness(1.25); }
+}
+
+/* ==========================================================================
+   MODAL DE GRAVAÇÕES INTERNAS (SD CARD) & STREAMING SOB DEMANDA
+   ========================================================================== */
+.recordings-modal-window {
+  max-width: 960px;
+}
+
+.rec-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.rec-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rec-filter-group label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.rec-input {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  transition: var(--transition);
+}
+
+.rec-input:focus {
+  border-color: #00f3ff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.rec-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn-rec-action {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-rec-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.btn-rec-primary {
+  background: linear-gradient(135deg, #00f3ff, #0077ff);
+  border: none;
+  color: #050a12;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-rec-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 243, 255, 0.4);
+}
+
+.rec-player-box {
+  background: #050a12;
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 10px;
+  padding: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+.rec-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #00f3ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.btn-close-player {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-close-player:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.rec-player-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.btn-rec-ai {
+  background: rgba(0, 243, 255, 0.15);
+  border: 1px solid #00f3ff;
+  color: #00f3ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-rec-ai:hover {
+  background: #00f3ff;
+  color: #050a12;
+}
+
+.btn-rec-download {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #10b981;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-rec-download:hover {
+  background: #10b981;
+  color: #050a12;
+}
+
+.rec-notice-banner {
+  background: rgba(0, 243, 255, 0.05);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.rec-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 5px;
+}
+
+.rec-list-scroll {
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.rec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.rec-table th {
+  background: rgba(15, 23, 42, 0.95);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rec-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.rec-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.rec-time-cell {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-rec-motion {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-rec-regular {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.rec-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.btn-play-clip {
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  color: #00f3ff;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-play-clip:hover {
+  background: #00f3ff;
+  color: #050a12;
+}
+
+.btn-dl-clip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-dl-clip:hover {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* ========================================================
+   OTIMIZAÇÕES RESPONSIVAS MOBILE & SMARTPHONE (CFTV VISION)
+   ======================================================== */
+
+@media (max-width: 900px) {
+  .cctv-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+    gap: 10px;
+    position: relative;
+  }
+
+  .brand-section {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .header-telemetry {
+    display: none; /* Oculta relógio duplo no mobile para ganhar espaço útil */
+  }
+
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .view-mode-group {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .btn-view-toggle {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 4px;
+    font-size: 11px;
+  }
+
+  .btn-header {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    padding: 9px 8px;
+    font-size: 12px;
+    min-height: 40px;
+  }
+
+  .main-viewport {
+    padding: 10px 8px;
+    gap: 12px;
+  }
+
+  .cctv-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  .cam-card {
+    border-radius: 10px;
+  }
+
+  .cam-card-header {
+    padding: 8px 12px;
+  }
+
+  .cam-info-wrapper {
+    gap: 8px;
+  }
+
+  .cam-title-box h2 {
+    font-size: 0.95rem;
+  }
+
+  .cam-controls {
+    gap: 4px;
+  }
+
+  .cam-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Modais de Gravação e Topologia em tela cheia mobile */
+  .modal-box {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 92vh !important;
+    margin: auto;
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .rec-filter-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .rec-filter-group {
+    width: 100%;
+  }
+
+  .rec-filter-group select,
+  .rec-filter-group input {
+    width: 100% !important;
+  }
+
+  .rec-table th,
+  .rec-table td {
+    padding: 8px 6px !important;
+    font-size: 0.72rem !important;
+  }
+
+  .rec-row-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-play-clip,
+  .btn-dl-clip {
+    width: 100%;
+    justify-content: center;
+    padding: 6px 4px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title h1 {
+    font-size: 0.95rem;
+  }
+
+  .brand-title p {
+    font-size: 0.72rem;
+  }
+
+  .btn-header {
+    flex: 1 1 100%; /* Em celulares pequenos empilha para toque confortável */
+  }
+
+  .badge-live {
+    font-size: 0.58rem;
+    padding: 1px 4px;
+  }
+}
