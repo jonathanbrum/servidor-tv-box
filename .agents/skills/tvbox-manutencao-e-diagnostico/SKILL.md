@@ -60,6 +60,16 @@ dmesg | grep -iE "sda|uas|I/O error|ext4" | tail -n 25
 smartctl -A /dev/sda
 ```
 
+### 3.1. Parada dos Pratos Mecânicos no Desligamento (`manage_shutdown=1`)
+Como a TV Box possui barramento USB de 5V contínuo da fonte DC (a porta USB não corta a energia quando a placa desliga), o driver SCSI está configurado com `manage_shutdown=1` e `manage_system_start_stop=1` para enviar o comando de *spindown* (parada dos motores) antes do halt do kernel:
+```bash
+# Regra udev permanente em /etc/udev/rules.d/60-scsi-manage-start-stop.rules:
+# ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}="1", ATTR{manage_system_start_stop}="1"
+
+# Confirmar se está ativo no HD /dev/sda (deve retornar 1):
+cat /sys/block/sda/device/scsi_disk/*/manage_shutdown
+```
+
 > ⚠️ **REGRA DE OURO DO `/boot/armbianEnv.txt`:**
 > Se precisar editar `/boot/armbianEnv.txt`, **SEMPRE deixe uma linha em branco (`\n`) no final do arquivo!** O U-Boot ignora a última linha se não houver quebra de linha, o que desativaria o `usbstoragequirks=...,0x0bc2:0xa003:u` e faria o boot demorar 30 minutos.
 

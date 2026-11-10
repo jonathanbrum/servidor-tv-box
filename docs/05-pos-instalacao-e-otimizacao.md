@@ -90,6 +90,48 @@ smartctl -a /dev/sda
 
 ---
 
+### 5.3. Por que o HD (ou o LED dele) continua ligado quando a luz azul da TV Box apaga?
+
+Se você executou `poweroff` (ou desligou pelo CasaOS), a luz azul da TV Box apagou, mas você notou que o HD continuou com a luz acesa ou vibrando/girando, **fique tranquilo: isso NÃO é um bug do sistema nem defeito do HD!**
+
+Trata-se de uma característica de hardware das TV Boxes chinesas somada ao comportamento padrão do Linux para discos USB:
+
+#### 1. A Linha de 5V das Portas USB é Contínua (Hardware)
+* Em computadores comuns (ATX) ou notebooks, a placa-mãe corta a alimentação elétrica dos conectores USB quando o sistema entra em estado de desligamento (*Soft Off* / S5).
+* Em TV Boxes de baixo custo (como a `X96Q v5.1` / Allwinner H313), o conector de 5V da fonte DC é ligado diretamente às portas USB sem chaves MOSFET de corte de energia.
+* **Consequência:** Enquanto a fonte de alimentação estiver conectada na tomada, haverá **5 Volts contínuos** alimentando a placa controladora USB do case Seagate, mantendo a luz do case acesa.
+
+#### 2. Os Pratos do Motor Continuam Girando? (Comportamento do Driver SCSI)
+* Durante o `poweroff`, o Linux executa o desligamento limpo: encerra os containers Docker, grava todo o cache pendente no disco (`sync`), desmonta todas as partições `ext4` e desliga o processador (apagando o LED azul).
+* Porém, por padrão no driver SCSI/USB do Linux (`sd.c`), o parâmetro `manage_start_stop` vem definido como `0`. Isso significa que o kernel não emite o comando SCSI `START_STOP_UNIT` para desacelerar o motor do disco mecânico antes de congelar a CPU.
+* Como o HD continua recebendo 5V ininterruptos da porta USB e não recebeu o comando de parada, ele permanece em rotação ociosa (*idle*).
+
+#### 3. Isso pode estragar o HD ou corromper dados?
+* **NÃO!** Não há risco de corromper dados nem danificar o disco:
+  * Como a luz azul já apagou, o sistema operacional já encerrou 100% de suas atividades e todas as partições foram desmontadas em segurança.
+  * Os HDs modernos de 2.5" (como o seu Seagate Samsung `ST1000LM024`) possuem um sistema mecânico chamado *Ramp Load/Unload*. Mesmo que a energia seja cortada subitamente, a agulha de leitura é automaticamente recolhida por indução magnética e travada fora dos pratos em uma rampa plástica segura.
+  * **Procedimento correto:** Assim que a luz azul da TV Box apagar, você pode puxar a fonte da tomada ou desligar o filtro de linha com total segurança!
+
+#### 4. Otimização Concluída: Ativar Parada Automática dos Pratos no Desligamento (`manage_shutdown=1`) — ✅ Ativo!
+Para instruir o Linux a enviar o comando SCSI de parada de rotação (*spindown*) para o HD Seagate antes de congelar a CPU:
+
+```bash
+# Criar a regra udev definitiva para parada dos discos no shutdown
+cat << 'EOF' > /etc/udev/rules.d/60-scsi-manage-start-stop.rules
+ACTION=="add", SUBSYSTEM=="scsi_disk", ATTR{manage_shutdown}="1", ATTR{manage_system_start_stop}="1"
+EOF
+
+# Aplicar a regra imediatamente
+udevadm control --reload-rules && udevadm trigger --subsystem-match=scsi_disk
+
+# Confirmar se foi ativado no HD /dev/sda (deve retornar 1):
+cat /sys/block/sda/device/scsi_disk/*/manage_shutdown
+```
+
+> 💡 **Nota Técnica do Kernel 6.x:** No Debian 12 / Kernel 6.12, o antigo atributo `manage_start_stop` foi refinado em `manage_shutdown` e `manage_system_start_stop`. Com esses atributos em `1`, no momento do `poweroff` (seja pelo controle remoto, SSH ou CasaOS), o subsistema SCSI do kernel executa o comando `sd_start_stop_device` desacelerando e parando o motor mecânico antes da TV Box cortar a execução! O LED da gaveta USB pode ainda permanecer aceso devido aos 5V contínuos da tomada, mas o motor magnético estará 100% desligado e em repouso.
+
+---
+
 ## 6. Guia de Migração / Clonagem Futura (Trocar o HD por um SSD ou Outro Disco)
 
 Como o sistema utiliza **Boot Híbrido** e está confinado em uma partição limpa de **300 GB** (usando atualmente apenas `~5.4 GB`), você **não precisa clonar setor por setor** de 1 TB. Você pode migrar para **qualquer SSD SATA em Case USB (ex: 120 GB, 240 GB, 480 GB) ou outro HD** copiando apenas os arquivos reais via `rsync`!
