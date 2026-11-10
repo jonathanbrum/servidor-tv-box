@@ -76,3 +76,35 @@ Toda a estrutura está isolada no HD externo:
 
 > [!NOTE]
 > Você pode abrir a pasta `/DATA/AppData/filebrowser/srv` diretamente pelo app **Files** do CasaOS ou via rede local do Windows para jogar arquivos grandes na velocidade máxima do cabo de rede!
+
+---
+
+## 🔒 5. Como Criar Amigos com Limite de Espaço (Automatizado)
+
+Para proteger seu HD de 1 TB e impedir que algum amigo suba centenas de gigabytes, desenvolvemos um gestor automatizado com **trava de disco virtual** (gastando míseros 2 MB de RAM!).
+
+### Opção A: Pelo Painel Visual Web (Mais Fácil)
+1. Acesse o **Gestor de Amigos**:
+   👉 `http://tvbox.local:1887` *(ou clique no card correspondente na [Central de Projetos](14-manual-central-de-projetos-hub.md))*
+2. Digite o **Nome do Amigo** e uma **Senha Inicial** (mínimo 12 caracteres).
+3. Escolha o limite clicando nos botões: `[ 5 GB ]`, `[ 10 GB ]`, `[ 20 GB ]`, `[ 50 GB ]` ou digite a quantidade.
+4. Clique em **🚀 Criar Amigo com Trava de Espaço**.
+5. **Pronto!** O sistema cria o disco virtual, monta a pasta restrita e cadastra o usuário no File Browser em 2 segundos.
+6. A tabela abaixo exibe em tempo real o espaço usado de cada amigo e permite excluir com 1 clique caso queira remover o acesso e liberar o espaço.
+
+### Opção B: Pelo Terminal SSH (Linha de Comando)
+Se preferir usar o terminal, o comando `amigo-drive` já está instalado globalmente no sistema:
+
+* **Criar amigo com limite:**
+  ```bash
+  amigo-drive criar lucas senha12345678 20
+  ```
+* **Listar amigos e ver uso de disco:**
+  ```bash
+  amigo-drive listar
+  ```
+* **Remover amigo e apagar seu disco:**
+  ```bash
+  amigo-drive remover lucas
+  ```
+
