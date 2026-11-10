@@ -138,6 +138,35 @@ Como o sistema utiliza **Boot Híbrido** e está confinado em uma partição lim
 
 > 💡 **Recomendação de Upgrade Futuro:** Prefira um **SSD SATA em Case USB** em vez de Pen Drive comum, pois Pen Drives aquecem e desgastam rápido com gravações constantes de logs/Docker 24/7, enquanto um SSD é silencioso, consome menos energia da porta USB e é até 10x mais rápido em leituras aleatórias (IOPS).
 
+### 6.1. Laboratório de Recuperação do SSD SATA de 240 GB (Roteiro para Desktop)
+
+Durante os testes de laboratório com um SSD SATA de 240 GB sob um adaptador USB de case Seagate, identificou-se o sintoma clássico de degradação de escrita:
+* **Escrita rápida de 100 MB:** `~97 MB/s` (dentro da janela de cache inicial).
+* **Escrita sustentada de 500 MB sem cache:** Despencou para **`2.06 MB/s`** (levando mais de 4 minutos).
+* **Diagnóstico da Ponte USB:** O chip do case externo Seagate bloqueou comandos ATA/SCSI de descarte (`TRIM` / `UNMAP`), impedindo o sistema operacional de instruir a memória flash a limpar blocos sujos.
+
+#### 📋 Passo a Passo para Recuperação via Porta SATA Nativa no Desktop:
+Quando o SSD for conectado diretamente a uma porta SATA da placa-mãe de um PC Desktop (com cabo SATA e energia da fonte):
+
+1. **Inspeção de Saúde Real (S.M.A.R.T.):**
+   - Abrir o **CrystalDiskInfo** para verificar:
+     - Modelo e fabricante real do chip controlador (Phison, Silicon Motion, Realtek, Maxio, etc.);
+     - Porcentagem de saúde restante da memória flash NAND;
+     - Contadores de `Retired Blocks`, `Reallocated Sectors` e `CRC Error Count` (mau contato no cabo).
+2. **Atualização de Firmware do Fabricante:**
+   - Baixar o utilitário oficial do fabricante (ex: *Kingston SSD Manager*, *Crucial Storage Executive*, *SanDisk Dashboard*, etc.).
+   - Verificar se há atualizações de firmware pendentes (muitos modelos antigos corrigiram problemas de colapso de velocidade no cache SLC via patch de firmware).
+3. **Execução do *ATA Secure Erase* via Hardware:**
+   - Pela porta SATA nativa, executar o comando **ATA Secure Erase** (pelo software do fabricante ou via pendrive *Parted Magic / Linux Live* com `hdparm --user-master u --security-set-pass NULL /dev/sdX` e `hdparm --user-master u --security-erase NULL /dev/sdX`).
+   - Isso emite um pulso elétrico em todas as células NAND simultaneamente, zerando a tabela interna FTL e restaurando o SSD ao estado de fábrica.
+4. **Aplicação do *Over-Provisioning Manual* (Reserva de 20%):**
+   - Criar uma partição de **190 GB** e deixar **~48 GB livres (espaço não alocado)**.
+   - O controlador usará esse espaço oculto para o algoritmo de *Garbage Collection* e *Wear Leveling*, evitando travamentos.
+5. **Teste de Validação:**
+   - Rodar um teste de escrita sustentada de 1 GB. Se mantiver taxas acima de **150 a 300 MB/s**, o SSD está curado e 100% apto para ser clonado e assumir o servidor TV Box com consumo e ruído zero!
+
+---
+
 ### Passo a Passo para Clonar/Migrar para um Disco Novo no Futuro:
 1. Conecte o disco novo na **segunda porta USB** da TV Box (ele será reconhecido como `/dev/sdb`).
 2. Crie uma partição Linux e formate em `ext4`:
