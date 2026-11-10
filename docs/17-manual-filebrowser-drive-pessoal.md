@@ -7,7 +7,10 @@ O **File Browser** transforma o HD externo de 1 TB da sua TV Box em uma nuvem pa
 ## ⚡ Acesso Rápido
 
 * **Local (Sua Casa):** `http://<IP_DA_TV_BOX>:8082` (ou clique no ícone **File Browser** no CasaOS / Hub).
-* **🌐 Público (Amigos / Internet):** `https://<SEU_TAILNET>.ts.net:10000/` *(com SSL automático via Tailscale Funnel, sem precisar abrir portas!)*
+* **⚡ Link Fixo Turbo (Recomendado):** `https://<SEU_TAILNET>.ts.net:8443/turbo/drive`  
+  *(Link fixo permanente que faz **redirecionamento 302 instantâneo** para a Cloudflare em São Paulo — velocidade máxima de fibra sem afunilamento!).*
+* **🌐 Link Direto Tailscale Funnel:** `https://<SEU_TAILNET>.ts.net:10000/` *(acesso direto de reserva)*.
+* **🎮 API de Descoberta (Para Jogos e Apps):** `https://<SEU_TAILNET>.ts.net:8443/api/discovery` *(retorna JSON em tempo real com a URL veloz do momento)*.
 * **Usuário Padrão:** `admin`
 * **Senha Inicial:** *(consulte o arquivo local `CREDENCIAIS_LOCAIS.md`)*
 * **Consumo de Memória:** Apenas **~17 MB de RAM** (escrito em Go, ultra leve).
