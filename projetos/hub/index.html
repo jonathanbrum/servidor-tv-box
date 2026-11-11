@@ -1201,7 +1201,7 @@
 
         // Copiar link com feedback visual
         function copyLink(text, btnElement) {
-            navigator.clipboard.writeText(text).then(() => {
+            const onSuccess = () => {
                 const originalText = btnElement.innerText;
                 btnElement.innerText = "✓ Copiado!";
                 btnElement.style.borderColor = "#10b981";
@@ -1211,9 +1211,26 @@
                     btnElement.style.borderColor = "";
                     btnElement.style.color = "";
                 }, 1800);
-            }).catch(() => {
-                showToast("Erro ao copiar link");
-            });
+            };
+            // Fallback para HTTP (sem contexto seguro, navigator.clipboard é indisponível)
+            const fallback = () => {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                let ok = false;
+                try { ok = document.execCommand("copy"); } catch (e) {}
+                document.body.removeChild(ta);
+                if (ok) onSuccess(); else showToast("Erro ao copiar link");
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(onSuccess).catch(fallback);
+            } else {
+                fallback();
+            }
         }
 
         // Modais (Adicionar / Editar)
