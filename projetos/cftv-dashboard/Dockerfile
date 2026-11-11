@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --maxsockets=3
 COPY . .
-RUN npm run build
+RUN npm run build && npm prune --omit=dev && rm -f node_modules/ffmpeg-static/ffmpeg node_modules/ffmpeg-static/ffmpeg.exe && find node_modules -name "*.map" -type f -delete
 
 # Estágio 2: Container Final de Execução Ultra-Leve
 FROM node:20-alpine
@@ -16,14 +16,10 @@ RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
-# Reaproveita node_modules do builder sem baixar tudo 2x na rede e remove devDependencies
 COPY package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
-RUN npm prune --omit=dev
-
-# Copia backend e assets estáticos
-COPY . .
 COPY --from=builder /app/dist ./dist
+COPY server ./server
 
 EXPOSE 3333
 
