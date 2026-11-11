@@ -1,0 +1,13 @@
+{
+  "cooldownSeconds": 60,
+  "windowsToastEnabled": false,
+  "windowsToastAttachPhoto": true,
+  "ntfyEnabled": false,
+  "ntfyServer": "https://ntfy.sh",
+  "ntfyTopic": "",
+  "ntfyAttachPhoto": true,
+  "telegramEnabled": false,
+  "telegramBotToken": "",
+  "telegramChatId": "",
+  "telegramAttachPhoto": true
+}

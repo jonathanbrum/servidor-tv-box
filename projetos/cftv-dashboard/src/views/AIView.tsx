@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { PageTitle } from "../components/PageTitle";
 import { CCTVPlayerFeed } from "../components/CCTVPlayerFeed";
+import { NotificationChannelsCard } from "../components/NotificationChannelsCard";
 import { Icon } from "../components/Icons";
 import { AiSettings, AlertEvent, CameraInfo } from "../types";
+import { Point, PRESET_FENCES, isPointInPoly } from "../utils/geometry";
 
 interface AIViewProps {
   cameras: Record<string, CameraInfo>;
-}
-
-interface Point {
-  x: number;
-  y: number;
 }
 
 interface TuyaDevice {
@@ -37,21 +34,6 @@ interface ActiveDetectionState {
   duration: number;
   bbox?: BBox;
   camId?: string;
-}
-
-function isPointInPoly(pt: { x: number; y: number }, poly: Point[]) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i].x;
-    const yi = poly[i].y;
-    const xj = poly[j].x;
-    const yj = poly[j].y;
-    const intersect =
-      yi > pt.y !== yj > pt.y &&
-      pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
-  }
-  return inside;
 }
 
 let sharedAudioCtx: AudioContext | null = null;
@@ -114,34 +96,6 @@ function playAlarmSound(force = false) {
   }
 }
 
-const PRESET_FENCES: Record<string, Point[]> = {
-  portao: [
-    { x: 55, y: 290 },
-    { x: 180, y: 175 },
-    { x: 470, y: 190 },
-    { x: 565, y: 320 },
-    { x: 230, y: 345 },
-  ],
-  garagem: [
-    { x: 90, y: 90 },
-    { x: 510, y: 90 },
-    { x: 510, y: 320 },
-    { x: 90, y: 320 },
-  ],
-  calcada: [
-    { x: 40, y: 240 },
-    { x: 560, y: 240 },
-    { x: 560, y: 340 },
-    { x: 40, y: 340 },
-  ],
-  total: [
-    { x: 20, y: 20 },
-    { x: 580, y: 20 },
-    { x: 580, y: 340 },
-    { x: 20, y: 340 },
-  ],
-};
-
 export interface TestSample {
   id: string;
   name: string;
@@ -197,6 +151,7 @@ export function AIView({ cameras }: AIViewProps) {
 
   // Modo Encomenda / Vigia Temporário (Sob Demanda até 12 horas)
   const [masterVigia, setMasterVigia] = useState(false);
+  const [windowsNotify, setWindowsNotify] = useState(false);
   const [vigiaDurationHours, setVigiaDurationHours] = useState(4);
   const [vigiaActiveUntil, setVigiaActiveUntil] = useState<number | null>(null);
   const [vigiaTimeRemaining, setVigiaTimeRemaining] = useState<string>("");
@@ -324,6 +279,9 @@ export function AIView({ cameras }: AIViewProps) {
           }
           if (data.webhookUrl !== undefined) {
             setWebhookUrl(data.webhookUrl);
+          }
+          if (typeof data.windowsNotify === "boolean") {
+            setWindowsNotify(data.windowsNotify);
           }
         }
       })
@@ -892,6 +850,25 @@ export function AIView({ cameras }: AIViewProps) {
     setShowPresets(false);
   };
 
+  const syncAiSetting = async (payload: Record<string, unknown>) => {
+    try {
+      const res = await fetch("/api/ia/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      window.dispatchEvent(new CustomEvent("cftv-vigia-updated"));
+      return res;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleToggleWindowsNotify = async (enabled: boolean) => {
+    setWindowsNotify(enabled);
+    await syncAiSetting({ windowsNotify: enabled });
+  };
+
   const handleSaveFence = async (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -906,16 +883,10 @@ export function AIView({ cameras }: AIViewProps) {
       localStorage.setItem("cctv_fence_name", fenceName);
     } catch (err) {}
 
-    try {
-      await fetch("/api/ia/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fenceName,
-          fencePoints: points,
-        }),
-      });
-    } catch (err) {}
+    await syncAiSetting({
+      fenceName,
+      fencePoints: points,
+    });
 
     setTimeout(() => setFenceSaved(false), 2500);
   };
@@ -932,31 +903,19 @@ export function AIView({ cameras }: AIViewProps) {
       Motos: "motorcycle",
       Animais: "animal",
     };
-    fetch("/api/ia/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enabledClasses: updated.map((name) => classMapping[name] || "person"),
-      }),
-    }).catch(() => {});
+    syncAiSetting({
+      enabledClasses: updated.map((name) => classMapping[name] || "person"),
+    });
   };
 
   const handleSensitivityChange = (val: number) => {
     setSensitivity(val);
-    fetch("/api/ia/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confidence: val }),
-    }).catch(() => {});
+    syncAiSetting({ confidence: val });
   };
 
   const handleLoiterChange = (val: number) => {
     setLoiterSeconds(val);
-    fetch("/api/ia/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ durationSeconds: val }),
-    }).catch(() => {});
+    syncAiSetting({ durationSeconds: val });
   };
 
   // Converte o prazo retornado pelo servidor (TV Box) para o relógio local do navegador,
@@ -1005,6 +964,7 @@ export function AIView({ cameras }: AIViewProps) {
         if (data.settings.vigiaDurationHours !== undefined) {
           setVigiaDurationHours(Number(data.settings.vigiaDurationHours));
         }
+        window.dispatchEvent(new CustomEvent("cftv-vigia-updated"));
       }
     } catch (e) {
       console.warn("[Vigia] Falha ao sincronizar com servidor:", e);
@@ -1042,6 +1002,7 @@ export function AIView({ cameras }: AIViewProps) {
           camId: "cam2",
           targetClass: "person",
           duration: 5,
+          force: true,
         }),
       });
     } catch (e) {}
@@ -1566,6 +1527,12 @@ export function AIView({ cameras }: AIViewProps) {
               <span>10s (Espera)</span>
             </div>
           </div>
+
+          {/* MÓDULO DE NOTIFICAÇÕES (WINDOWS & ANDROID) */}
+          <NotificationChannelsCard
+            windowsNotify={windowsNotify}
+            onToggleWindowsNotify={handleToggleWindowsNotify}
+          />
 
           {/* MÓDULO SMART LIFE / TUYA INTEGRADO NO PADRÃO COMMAND CENTER */}
           <div className="pt-3 border-t border-[#252c30]">

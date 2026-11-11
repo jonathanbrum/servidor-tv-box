@@ -11,5 +11,6 @@ RECUPERAR_SSD.bat
 node_modules/
 *.log
 **/tuya-config.json
+**/notify-config.json
 **/scratch/cache/
 

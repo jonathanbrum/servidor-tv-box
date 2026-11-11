@@ -162,10 +162,13 @@ A partir da versão 2.4 do dashboard:
 7. **Integração de Webhook e Teste de Sensibilidade com Fotos Reais:**
    - Configuração de URL personalizada de Webhook HTTP POST na aba Vigia IA com atalhos rápidos para Node-RED e Home Assistant.
    - Teste de Sensibilidade com inferência 100% real através do modelo COCO-SSD da TensorFlow, eliminando simulações fixas ou caixas falsas de pessoas e utilizando fotos reais capturadas das câmeras da residência.
+8. **Notificações Multiplataforma do Modo Vigia (Windows & Android) com Cooldown:**
+   - Painel configurável na aba Vigia IA com toggles independentes e botões de teste para **Navegador/Windows**, **Windows Toast Nativo** (quando o servidor roda no Windows), **Push Android/PC via `ntfy.sh`** (com snapshot JPEG anexado) e **Bot do Telegram** (`sendPhoto`).
+   - Controle de intervalo mínimo entre alertas (`15s`, `30s`, `1m`, `3m`, `5m`, `15m` ou `0s`) no backend (`server/notifier.js`) e frontend (`useVigiaMonitor` + `App.tsx`) para evitar spam enquanto o alvo permanece na cerca.
 
 ---
 
 ## 🔒 Segurança e Sanitização das Câmeras
 
 > [!IMPORTANT]
-> O arquivo `.env` e as configurações da Tuya (`tuya-config.json`) estão listados no `.gitignore` e **nunca sobem para o GitHub público**. As senhas das câmeras ficam restritas exclusivamente à memória do container na sua rede interna.
+> O arquivo `.env`, as configurações da Tuya (`tuya-config.json`) e as credenciais de notificação (`notify-config.json`) estão listados no `.gitignore` e **nunca sobem para o GitHub público**. As senhas e tokens ficam restritos exclusivamente ao ambiente local do servidor/container.

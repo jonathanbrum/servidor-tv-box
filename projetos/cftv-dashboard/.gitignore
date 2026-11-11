@@ -3,5 +3,6 @@ dist/
 .env
 *.log
 server/tuya-config.json
+server/notify-config.json
 scratch/cache/
 CFTV Security Command Center Layout/

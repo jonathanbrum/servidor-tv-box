@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './components/Icons';
 import { LiveView } from './views/LiveView';
 import { WallView } from './views/WallView';
@@ -7,6 +7,7 @@ import { AIView } from './views/AIView';
 import { RecordView } from './views/RecordView';
 import { NetworkView } from './views/NetworkView';
 import { SettingsModal } from './components/SettingsModal';
+import { useVigiaMonitor } from './hooks/useVigiaMonitor';
 import { CameraInfo, IconName, SystemStatus } from './types';
 
 const nav = [
@@ -49,6 +50,25 @@ export default function App() {
   });
   const [primaryIp, setPrimaryIp] = useState('192.168.1.134');
 
+  // Monitoramento ao vivo do Modo Vigia + flag de notificação no navegador/Windows
+  const { windowsNotify, notifyCooldownSeconds } = useVigiaMonitor();
+  const camerasRef = useRef(cameras);
+  const windowsNotifyRef = useRef(windowsNotify);
+  const notifyCooldownRef = useRef(notifyCooldownSeconds);
+  const lastWinNotifyAtRef = useRef(0);
+
+  useEffect(() => {
+    camerasRef.current = cameras;
+  }, [cameras]);
+
+  useEffect(() => {
+    windowsNotifyRef.current = windowsNotify;
+  }, [windowsNotify]);
+
+  useEffect(() => {
+    notifyCooldownRef.current = notifyCooldownSeconds;
+  }, [notifyCooldownSeconds]);
+
   // Relógio do cabeçalho
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -62,7 +82,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', syncTvRoute);
   }, []);
 
-  // Escuta alertas reais via SSE para gerar notificações reais
+  // Escuta alertas reais via SSE para gerar notificações no sininho e no Windows/Navegador
   useEffect(() => {
     let eventSource: EventSource | null = null;
     try {
@@ -71,14 +91,52 @@ export default function App() {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'alarm') {
-            const target = data.targetClass === 'person' ? 'Pessoa detectada' : 'Movimento na cerca';
+            const targetLabels: Record<string, string> = {
+              person: 'Pessoa detectada',
+              car: 'Veículo detectado',
+              motorcycle: 'Moto detectada',
+              animal: 'Animal detectado',
+            };
+            const target = targetLabels[data.targetClass] || 'Movimento na cerca';
+            const camKey = data.camId === 'cam1' ? 'cam1' : 'cam2';
+            const camCode = camKey === 'cam1' ? 'CAM 1' : 'CAM 2';
+            const camName = camerasRef.current[camKey]?.name || (camKey === 'cam1' ? 'Fundos' : 'Entrada');
+            const summaryText = `${target} em ${camCode} (${camName})`;
+
             const newNotif = {
               id: String(Date.now()),
-              text: `${target} em CAM 2 (${cameras.cam2?.name || 'Entrada'})`,
+              text: summaryText,
               time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
               read: false,
             };
             setNotifications((prev) => [newNotif, ...prev.slice(0, 9)]);
+
+            const browserCooldownMs = Math.max(0, notifyCooldownRef.current) * 1000;
+            const canShowBrowserNotif =
+              Boolean(data.force) ||
+              browserCooldownMs === 0 ||
+              Date.now() - lastWinNotifyAtRef.current >= browserCooldownMs;
+
+            if (
+              canShowBrowserNotif &&
+              windowsNotifyRef.current &&
+              'Notification' in window &&
+              Notification.permission === 'granted'
+            ) {
+              lastWinNotifyAtRef.current = Date.now();
+              try {
+                const winNotif = new Notification(`🚨 Vigia IA — ${target}`, {
+                  body: `${camCode} (${camName}) • Permanência de ${data.duration || 5}s`,
+                  icon: `/api/ia/snapshot/${camKey}?t=${Date.now()}`,
+                  tag: `cftv-alarm-${camKey}`,
+                });
+                winNotif.onclick = () => {
+                  window.focus();
+                  setPage('ai');
+                  winNotif.close();
+                };
+              } catch (e) {}
+            }
           }
         } catch (e) {}
       };
@@ -87,7 +145,7 @@ export default function App() {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [cameras]);
+  }, []);
 
   // Busca dados de configuração e conectividade do servidor
   const fetchServerData = async () => {

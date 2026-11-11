@@ -9,6 +9,7 @@ const config = require('./config');
 const XMeyeClient = require('./xmeye-client');
 const StreamRelayManager = require('./stream-relay');
 const tuyaService = require('./tuya');
+const notifier = require('./notifier');
 
 // Tratamento global de erros de rede para evitar que desconexões abruptas derrubem o servidor
 process.on('uncaughtException', (err) => {
@@ -169,48 +170,83 @@ app.get('/ia', (req, res) => {
 });
 
 /**
- * ROTA DA API: Captura de quadro instantâneo para análise da IA (com fallback inteligente)
+ * Captura um snapshot JPEG em memória da câmera (XMeye nativo ~100ms, com fallback FFmpeg RTSP).
  */
-app.get('/api/ia/snapshot/:camId', async (req, res) => {
-  const cam = config.cameras[req.params.camId];
-  if (!cam) return res.status(404).json({ error: 'Câmera não encontrada' });
-
-  // Método 1: Captura Sofia XMeye nativa ultra-rápida
-  try {
-    const snap = await XMeyeClient.getSnapshot(cam, 2000);
-    res.setHeader('Content-Type', 'image/jpeg');
-    return res.send(snap);
-  } catch (err) {
-    // Falha silenciosa no Sofia, tenta fallback FFmpeg abaixo
+async function captureSnapshotBuffer(camId, { subtype = 1, timeoutMs = 4000, quality = 3 } = {}) {
+  const cam = config.cameras[camId];
+  if (!cam) {
+    throw new Error('Câmera não encontrada');
   }
 
-  // Método 2: Fallback via FFmpeg RTSP
   try {
-    const rtspUrl = config.buildRtspUrl(cam, { subtype: 1 }); // Substream rápido para IA
+    return await XMeyeClient.getSnapshot({
+      host: cam.host,
+      port: 34567,
+      user: cam.user,
+      pass: cam.pass
+    }, Math.min(timeoutMs, 2500));
+  } catch (xmeyeErr) {
+    // Fallback via FFmpeg RTSP caso a porta 34567 não responda
+  }
+
+  return new Promise((resolve, reject) => {
+    const rtspUrl = config.buildRtspUrl(cam, { subtype });
     const ffmpeg = spawn(ffmpegPath, [
       '-rtsp_transport', 'tcp',
       '-i', rtspUrl,
       '-vframes', '1',
-      '-q:v', '3',
+      '-q:v', String(quality),
       '-f', 'image2',
       '-c:v', 'mjpeg',
       '-'
     ], { windowsHide: true });
 
-    res.setHeader('Content-Type', 'image/jpeg');
-    const timeout = setTimeout(() => {
-      ffmpeg.kill('SIGKILL');
-      if (!res.headersSent) res.status(504).json({ error: 'Timeout no snapshot' });
-    }, 4000);
+    const chunks = [];
+    let settled = false;
 
-    ffmpeg.stdout.pipe(res);
-    ffmpeg.on('close', () => clearTimeout(timeout));
-    ffmpeg.on('error', (e) => {
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      ffmpeg.kill('SIGKILL');
+      reject(new Error('Tempo limite ao capturar snapshot da câmera'));
+    }, timeoutMs);
+
+    ffmpeg.stdout.on('data', (chunk) => chunks.push(chunk));
+
+    ffmpeg.on('close', (code) => {
       clearTimeout(timeout);
-      if (!res.headersSent) res.status(500).json({ error: e.message });
+      if (settled) return;
+      settled = true;
+      const buf = Buffer.concat(chunks);
+      if (buf.length > 0) {
+        resolve(buf);
+      } else {
+        reject(new Error(`FFmpeg encerrou sem imagem (código ${code})`));
+      }
     });
-  } catch (fallbackErr) {
-    if (!res.headersSent) res.status(500).json({ error: fallbackErr.message });
+
+    ffmpeg.on('error', (err) => {
+      clearTimeout(timeout);
+      if (settled) return;
+      settled = true;
+      reject(err);
+    });
+  });
+}
+
+/**
+ * ROTA DA API: Captura de quadro instantâneo para análise da IA (com fallback inteligente)
+ */
+app.get('/api/ia/snapshot/:camId', async (req, res) => {
+  if (!config.cameras[req.params.camId]) {
+    return res.status(404).json({ error: 'Câmera não encontrada' });
+  }
+  try {
+    const snap = await captureSnapshotBuffer(req.params.camId, { subtype: 1, timeoutMs: 4000, quality: 3 });
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(snap);
+  } catch (err) {
+    res.status(err.message.includes('limite') ? 504 : 500).json({ error: err.message });
   }
 });
 
@@ -285,12 +321,13 @@ app.get('/api/ia/events', (req, res) => {
  * ROTA DA API: Notificar Alarme de IA para todas as TVs / Dashboards conectados
  */
 app.post('/api/ia/alert', (req, res) => {
-  const { camId, targetClass, duration } = req.body;
+  const { camId, targetClass, duration, force } = req.body;
   const alertData = {
     type: 'alarm',
     camId: camId || 'cam2',
     targetClass: targetClass || 'person',
     duration: duration || 5,
+    force: Boolean(force),
     timestamp: new Date().toISOString()
   };
 
@@ -316,7 +353,47 @@ app.post('/api/ia/alert', (req, res) => {
     }).catch(() => {});
   }
 
+  // Disparo automático de notificações multiplataforma (Windows Toast / ntfy Android / Telegram)
+  notifier.dispatchAlert(alertData, {
+    force: Boolean(force),
+    getSnapshot: () => captureSnapshotBuffer(alertData.camId, { subtype: 1, timeoutMs: 3000, quality: 3 })
+  }).catch((err) => {
+    console.warn('[IA VIGIA -> Notifier] Erro ao despachar notificações:', err.message);
+  });
+
   res.json({ success: true, clientsNotified: sseClients.size });
+});
+
+/**
+ * ROTAS DA API: Notificações Push (Windows Toast, ntfy.sh Android/PC, Telegram Bot)
+ */
+app.get('/api/notify/config', (req, res) => {
+  res.json(notifier.getPublicConfig());
+});
+
+app.post('/api/notify/config', (req, res) => {
+  try {
+    res.json(notifier.saveConfig(req.body));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/notify/test', async (req, res) => {
+  try {
+    const { channel, camId } = req.body || {};
+    const targetCam = config.cameras[camId] ? camId : 'cam2';
+    const result = await notifier.testChannel(channel, {
+      getSnapshot: () => captureSnapshotBuffer(targetCam, { subtype: 1, timeoutMs: 3000, quality: 3 })
+    });
+    if (result.ok) {
+      res.json({ success: true, channel });
+    } else {
+      res.status(400).json({ success: false, channel, error: result.error || 'Falha ao enviar teste' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 /**
@@ -550,59 +627,21 @@ app.get('/api/config', (req, res) => {
  */
 app.get('/api/snapshot/:camId', async (req, res) => {
   const { camId } = req.params;
-  const cam = config.cameras[camId];
-
-  if (!cam) {
+  if (!config.cameras[camId]) {
     return res.status(404).json({ error: 'Câmera não encontrada' });
   }
 
-  res.setHeader('Content-Type', 'image/jpeg');
-  res.setHeader('Content-Disposition', `inline; filename="snapshot-${camId}-${Date.now()}.jpg"`);
-
-  // Método 1: Tenta captura direta via protocolo nativo XMeye (porta 34567) - Ultra-rápido (~100ms)
   try {
-    const snapBuffer = await XMeyeClient.getSnapshot({
-      host: cam.host,
-      port: 34567,
-      user: cam.user,
-      pass: cam.pass
-    }, 2500);
-    return res.end(snapBuffer);
-  } catch (xmeyeErr) {
-    // Se falhar ou a câmera não suportar Sofia na 34567, faz fallback para FFmpeg RTSP
+    const snapBuffer = await captureSnapshotBuffer(camId, { subtype: 0, timeoutMs: 5000, quality: 2 });
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Disposition', `inline; filename="snapshot-${camId}-${Date.now()}.jpg"`);
+    res.end(snapBuffer);
+  } catch (err) {
+    res.status(err.message.includes('limite') ? 504 : 500).json({
+      error: 'Falha ao executar snapshot',
+      details: err.message
+    });
   }
-
-  // Método 2: Fallback via FFmpeg RTSP (porta 554)
-  const rtspUrl = config.buildRtspUrl(cam, { subtype: 0 });
-  const ffmpeg = spawn(ffmpegPath, [
-    '-rtsp_transport', 'tcp',
-    '-i', rtspUrl,
-    '-vframes', '1',
-    '-q:v', '2',
-    '-f', 'image2',
-    '-c:v', 'mjpeg',
-    '-'
-  ], { windowsHide: true });
-
-  const timeout = setTimeout(() => {
-    ffmpeg.kill('SIGKILL');
-    if (!res.headersSent) {
-      res.status(504).json({ error: 'Tempo limite ao capturar snapshot da câmera' });
-    }
-  }, 5000);
-
-  ffmpeg.stdout.pipe(res);
-
-  ffmpeg.on('close', () => {
-    clearTimeout(timeout);
-  });
-
-  ffmpeg.on('error', (err) => {
-    clearTimeout(timeout);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Falha ao executar snapshot', details: err.message });
-    }
-  });
 });
 
 /**

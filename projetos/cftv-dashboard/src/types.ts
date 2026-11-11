@@ -67,6 +67,27 @@ export interface AiSettings {
   soundAlert: boolean;
   windowsNotify: boolean;
   webhookUrl: string;
+  fenceName?: string;
+  fencePoints?: Array<{ x: number; y: number }>;
+  remainingSeconds?: number | null;
+  serverTime?: number;
+}
+
+export interface NotifyConfig {
+  platform: string;
+  cooldownSeconds: number;
+  windowsToastSupported: boolean;
+  windowsToastEnabled: boolean;
+  windowsToastAttachPhoto: boolean;
+  ntfyEnabled: boolean;
+  ntfyServer: string;
+  ntfyTopic: string;
+  ntfyAttachPhoto: boolean;
+  telegramEnabled: boolean;
+  hasTelegramToken: boolean;
+  telegramBotTokenMasked: string;
+  telegramChatId: string;
+  telegramAttachPhoto: boolean;
 }
 
 export interface RecordingItem {
