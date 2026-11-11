@@ -18,15 +18,15 @@ services:
       - CAM2_PORT=${CAM2_PORT:-34567}
       - CAM2_USER=${CAM2_USER:-admin}
       - CAM2_PASS=${CAM2_PASS:-}
-    # Limites rígidos de recursos para respeitar o 1 GB de RAM e proteger a CPU da TV Box
+    # Limites rígidos de recursos para respeitar o 1 GB de RAM (com folga sob demanda para IA WASM)
     deploy:
       resources:
         limits:
           cpus: '1.5'
-          memory: 180M
+          memory: 280M
         reservations:
           cpus: '0.2'
-          memory: 80M
+          memory: 100M
     x-casaos:
       icon: https://cdn-icons-png.flaticon.com/512/3242/3242257.png
       title:

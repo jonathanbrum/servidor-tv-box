@@ -60,9 +60,9 @@ O CFTV Dashboard roda sob o **Padrão 3 (Container Dedicado em Alpine)** da noss
 | :--- | :--- |
 | **Imagem Base** | `node:20-alpine` com pacote `ffmpeg` nativo ARM64 |
 | **Consumo de RAM Médio** | ~45 MB a 90 MB (dependendo de conexões ativas) |
-| **Limite Rígido de RAM (`mem_limit`)** | `180M` (garante que nunca trave o sistema operacional) |
+| **Limite Rígido de RAM (`mem_limit`)** | `280M` (45 MB em repouso; folga sob demanda para IA WASM em 2 etapas) |
 | **Limite Rígido de CPU (`cpus`)** | `1.5` (impede que o transcode sature os 4 núcleos do H313) |
-| **Reserva (`mem_reservation`)**| `80M` |
+| **Reserva (`mem_reservation`)**| `100M` |
 | **Modo Padrão de Exibição** | `🍃 ECO 1s` (Snapshots JPEG nativos a cada 1s via porta 34567) |
 | **Porta Externa** | `:3333` |
 | **Caminho no Repositório** | `projetos/cftv-dashboard/` |
@@ -162,9 +162,10 @@ A partir da versão 2.4 do dashboard:
 7. **Integração de Webhook e Teste de Sensibilidade com Fotos Reais:**
    - Configuração de URL personalizada de Webhook HTTP POST na aba Vigia IA com atalhos rápidos para Node-RED e Home Assistant.
    - Teste de Sensibilidade com inferência 100% real através do modelo COCO-SSD da TensorFlow, eliminando simulações fixas ou caixas falsas de pessoas e utilizando fotos reais capturadas das câmeras da residência.
-8. **Notificações Multiplataforma do Modo Vigia (Windows & Android) com Cooldown:**
-   - Painel configurável na aba Vigia IA com toggles independentes e botões de teste para **Navegador/Windows**, **Windows Toast Nativo** (quando o servidor roda no Windows), **Push Android/PC via `ntfy.sh`** (com snapshot JPEG anexado) e **Bot do Telegram** (`sendPhoto`).
-   - Controle de intervalo mínimo entre alertas (`15s`, `30s`, `1m`, `3m`, `5m`, `15m` ou `0s`) no backend (`server/notifier.js`) e frontend (`useVigiaMonitor` + `App.tsx`) para evitar spam enquanto o alvo permanece na cerca.
+8. **Vigia IA Autônomo em 2 Etapas no Servidor + Notificações Multiplataforma (`ntfy.sh` / Telegram / Windows):**
+   - **Etapa 1 (Filtro de Movimento na Cerca):** `server/vigia-engine.js` decodifica snapshots leves via `jpeg-js` e detecta variação de luminância exclusivamente dentro dos pontos da cerca virtual (~0% de IA em repouso).
+   - **Etapa 2 (Confirmação IA Offline):** apenas quando há movimento, roda `@tensorflow/tfjs-backend-wasm` + `coco-ssd` (`lite_mobilenet_v2`, descarregado automaticamente quando o Modo Vigia está desligado) direto na TV Box — sem precisar manter o navegador aberto no PC.
+   - Painel configurável na aba Vigia IA com toggles independentes, botões de teste e controle de cooldown (`15s` a `15m`) para **Navegador/Windows**, **Windows Toast Nativo**, **Push Android/PC via `ntfy.sh`** (com snapshot JPEG) e **Bot do Telegram** (`sendPhoto`).
 
 ---
 

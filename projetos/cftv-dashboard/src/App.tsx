@@ -8,7 +8,7 @@ import { RecordView } from './views/RecordView';
 import { NetworkView } from './views/NetworkView';
 import { SettingsModal } from './components/SettingsModal';
 import { useVigiaMonitor } from './hooks/useVigiaMonitor';
-import { CameraInfo, IconName, SystemStatus } from './types';
+import { CameraInfo, IconName, SystemStatus, VigiaStatus } from './types';
 
 const nav = [
   { id: 'live', label: 'Monitoramento', icon: 'grid' as IconName },
@@ -51,11 +51,18 @@ export default function App() {
   const [primaryIp, setPrimaryIp] = useState('192.168.1.134');
 
   // Monitoramento ao vivo do Modo Vigia + flag de notificação no navegador/Windows
-  const { windowsNotify, notifyCooldownSeconds } = useVigiaMonitor();
+  const { windowsNotify, notifyCooldownSeconds, initialVigiaStatus } = useVigiaMonitor();
+  const [vigiaStatus, setVigiaStatus] = useState<VigiaStatus | null>(null);
   const camerasRef = useRef(cameras);
   const windowsNotifyRef = useRef(windowsNotify);
   const notifyCooldownRef = useRef(notifyCooldownSeconds);
   const lastWinNotifyAtRef = useRef(0);
+
+  useEffect(() => {
+    if (initialVigiaStatus) {
+      setVigiaStatus((prev) => prev || initialVigiaStatus);
+    }
+  }, [initialVigiaStatus]);
 
   useEffect(() => {
     camerasRef.current = cameras;
@@ -90,6 +97,9 @@ export default function App() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          if (data.type === 'vigia_status' && data.status) {
+            setVigiaStatus(data.status);
+          }
           if (data.type === 'alarm') {
             const targetLabels: Record<string, string> = {
               person: 'Pessoa detectada',
@@ -216,7 +226,7 @@ export default function App() {
       case 'wall':
         return <WallView cameras={cameras} onOpen={openTvMode} />;
       case 'ai':
-        return <AIView cameras={cameras} />;
+        return <AIView cameras={cameras} vigiaStatus={vigiaStatus} />;
       case 'record':
         return (
           <RecordView

@@ -3,11 +3,12 @@ import { PageTitle } from "../components/PageTitle";
 import { CCTVPlayerFeed } from "../components/CCTVPlayerFeed";
 import { NotificationChannelsCard } from "../components/NotificationChannelsCard";
 import { Icon } from "../components/Icons";
-import { AiSettings, AlertEvent, CameraInfo } from "../types";
+import { AiSettings, AlertEvent, CameraInfo, VigiaStatus } from "../types";
 import { Point, PRESET_FENCES, isPointInPoly } from "../utils/geometry";
 
 interface AIViewProps {
   cameras: Record<string, CameraInfo>;
+  vigiaStatus?: VigiaStatus | null;
 }
 
 interface TuyaDevice {
@@ -135,7 +136,7 @@ const BUILTIN_SAMPLES: TestSample[] = [
   },
 ];
 
-export function AIView({ cameras }: AIViewProps) {
+export function AIView({ cameras, vigiaStatus }: AIViewProps) {
   const [classes, setClasses] = useState<string[]>(["Pessoas", "Carros"]);
   const [testMode, setTestMode] = useState(false);
   const [selectedSampleId, setSelectedSampleId] = useState<string>("cam2_real");
@@ -1062,6 +1063,29 @@ export function AIView({ cameras }: AIViewProps) {
     : "Portão principal";
   const polygonPointsStr = points.map((p) => `${p.x},${p.y}`).join(" ");
 
+  const serverClassPt: Record<string, string> = {
+    person: "Pessoa",
+    car: "Carro",
+    motorcycle: "Moto",
+    animal: "Animal",
+  };
+  const liveDetection: ActiveDetectionState | null =
+    !testMode && vigiaStatus?.detection
+      ? {
+          targetClass:
+            serverClassPt[vigiaStatus.detection.targetClass] ||
+            vigiaStatus.detection.targetClass,
+          confidence: vigiaStatus.detection.confidence,
+          duration: vigiaStatus.detection.duration,
+          bbox: vigiaStatus.detection.bbox,
+          camId: vigiaStatus.detection.camId,
+        }
+      : null;
+  const displayedDetection = activeDetection || liveDetection;
+  const displayedLoiter = liveDetection
+    ? `00:${String(Math.floor(liveDetection.duration)).padStart(2, "0")}`
+    : loiterDisplay;
+
   return (
     <div className="view">
       <PageTitle
@@ -1190,25 +1214,25 @@ export function AIView({ cameras }: AIViewProps) {
             )}
 
             {/* Overlays Dinâmicos de Detecção (Apenas visíveis quando há detecção ativa ou disparo de teste) */}
-            {activeDetection && (
+            {displayedDetection && (
               <>
                 <div
-                  className={`detect-box ${activeDetection.targetClass.toLowerCase().includes("car") ? "car" : "person"} pointer-events-none animate-pulse`}
+                  className={`detect-box ${displayedDetection.targetClass.toLowerCase().includes("car") ? "car" : "person"} pointer-events-none animate-pulse`}
                   style={{
                     zIndex: 25,
-                    ...(activeDetection.bbox
+                    ...(displayedDetection.bbox
                       ? {
-                          left: `${(activeDetection.bbox.x / 600) * 100}%`,
-                          top: `${(activeDetection.bbox.y / 360) * 100}%`,
-                          width: `${(activeDetection.bbox.w / 600) * 100}%`,
-                          height: `${(activeDetection.bbox.h / 360) * 100}%`,
+                          left: `${(displayedDetection.bbox.x / 600) * 100}%`,
+                          top: `${(displayedDetection.bbox.y / 360) * 100}%`,
+                          width: `${(displayedDetection.bbox.w / 600) * 100}%`,
+                          height: `${(displayedDetection.bbox.h / 360) * 100}%`,
                         }
                       : {}),
                   }}
                 >
                   <span>
-                    {activeDetection.targetClass.toUpperCase()}&nbsp;{" "}
-                    {activeDetection.confidence}%
+                    {displayedDetection.targetClass.toUpperCase()}&nbsp;{" "}
+                    {displayedDetection.confidence}%
                   </span>
                 </div>
 
@@ -1218,7 +1242,7 @@ export function AIView({ cameras }: AIViewProps) {
                 >
                   <Icon name="alert" size={14} />
                   <span>PERMANÊNCIA</span>
-                  <strong>{loiterDisplay}</strong>
+                  <strong>{displayedLoiter}</strong>
                 </div>
               </>
             )}
@@ -1409,10 +1433,40 @@ export function AIView({ cameras }: AIViewProps) {
           <div className="panel-title">
             <div>
               <span className="pulse-dot" />
-              <h3>Motor IA ativo</h3>
+              <h3>Motor IA (2 Etapas · Servidor)</h3>
             </div>
-            <span>18 ms</span>
+            <span>
+              {vigiaStatus?.lastInferenceMs
+                ? `${vigiaStatus.lastInferenceMs} ms`
+                : vigiaStatus?.modelLoading
+                  ? "carregando..."
+                  : vigiaStatus?.enabled
+                    ? `${vigiaStatus.motionPct ?? 0}% mov.`
+                    : "repouso"}
+            </span>
           </div>
+
+          {vigiaStatus && (
+            <div className="px-2.5 py-1.5 rounded bg-[#0c1012] border border-[#232b2f] text-[11px] flex items-center justify-between gap-2">
+              <span className="text-neutral-300 truncate" title={vigiaStatus.message}>
+                {vigiaStatus.stage === "detected"
+                  ? "🚨"
+                  : vigiaStatus.stage === "loading-model"
+                    ? "⏳"
+                    : vigiaStatus.stage === "error"
+                      ? "⚠️"
+                      : vigiaStatus.enabled
+                        ? "🟢"
+                        : "⚪"}{" "}
+                {vigiaStatus.message}
+              </span>
+              {vigiaStatus.lastCheckAt && (
+                <span className="text-[10px] font-mono text-neutral-500 shrink-0">
+                  {new Date(vigiaStatus.lastCheckAt).toLocaleTimeString("pt-BR")}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* MODO ENCOMENDA / VIGIA TEMPORÁRIO (SOB DEMANDA ATÉ 12H) */}
           <div className="bg-[#121719] p-3 rounded-lg border border-[#252c30] space-y-2.5">

@@ -90,6 +90,27 @@ export interface NotifyConfig {
   telegramAttachPhoto: boolean;
 }
 
+export interface VigiaDetection {
+  targetClass: string;
+  rawClass?: string;
+  confidence: number;
+  duration: number;
+  camId?: string;
+  bbox?: { x: number; y: number; w: number; h: number };
+}
+
+export interface VigiaStatus {
+  enabled: boolean;
+  stage: 'idle' | 'watching' | 'loading-model' | 'filtered' | 'detected' | 'error';
+  modelLoaded: boolean;
+  modelLoading: boolean;
+  motionPct: number;
+  lastCheckAt: string | null;
+  lastInferenceMs: number | null;
+  detection: VigiaDetection | null;
+  message: string;
+}
+
 export interface RecordingItem {
   id?: string;
   camId: string;

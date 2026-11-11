@@ -10,6 +10,7 @@ const XMeyeClient = require('./xmeye-client');
 const StreamRelayManager = require('./stream-relay');
 const tuyaService = require('./tuya');
 const notifier = require('./notifier');
+const VigiaEngine = require('./vigia-engine');
 
 // Tratamento global de erros de rede para evitar que desconexões abruptas derrubem o servidor
 process.on('uncaughtException', (err) => {
@@ -156,6 +157,7 @@ app.get('/api/ia/settings', (req, res) => {
 app.post('/api/ia/settings', (req, res) => {
   try {
     const saved = saveAiSettings(req.body);
+    vigiaEngine.scheduleNext(150);
     res.json({ success: true, settings: saved });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -300,33 +302,15 @@ async function sendWebhookAlert(url, payload) {
 }
 
 /**
- * ROTA SSE: Stream de Eventos em Tempo Real para Smart TVs e Dashboards
+ * Dispara um evento de alarme para SSE, Tuya, Webhook e notificações multiplataforma.
  */
-app.get('/api/ia/events', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  // Envia confirmação de conexão ativa
-  res.write(`data: ${JSON.stringify({ type: 'connected', time: Date.now() })}\n\n`);
-  sseClients.add(res);
-
-  req.on('close', () => {
-    sseClients.delete(res);
-  });
-});
-
-/**
- * ROTA DA API: Notificar Alarme de IA para todas as TVs / Dashboards conectados
- */
-app.post('/api/ia/alert', (req, res) => {
-  const { camId, targetClass, duration, force } = req.body;
+function emitAlarmEvent({ camId, targetClass, duration, confidence, force = false }) {
   const alertData = {
     type: 'alarm',
     camId: camId || 'cam2',
     targetClass: targetClass || 'person',
     duration: duration || 5,
+    confidence: confidence || undefined,
     force: Boolean(force),
     timestamp: new Date().toISOString()
   };
@@ -334,14 +318,12 @@ app.post('/api/ia/alert', (req, res) => {
   console.log(`[IA VIGIA 🚨] Transmitindo alarme para ${sseClients.size} tela(s) / TV(s) conectadas (${alertData.camId} - ${alertData.targetClass} - ${alertData.duration}s)`);
   broadcastIaAlert(alertData);
 
-  // Disparo automático do Smart Life / Tuya se configurado e habilitado
   if (tuyaService.config.enabled) {
     tuyaService.triggerAlarm().catch(err => {
       console.error('[IA VIGIA -> Smart Life] Erro ao disparar automação:', err.message);
     });
   }
 
-  // Disparo automático de Webhook se configurado nas opções da IA
   const aiCfg = getAiSettings();
   if (aiCfg.webhookUrl) {
     sendWebhookAlert(aiCfg.webhookUrl, {
@@ -353,7 +335,6 @@ app.post('/api/ia/alert', (req, res) => {
     }).catch(() => {});
   }
 
-  // Disparo automático de notificações multiplataforma (Windows Toast / ntfy Android / Telegram)
   notifier.dispatchAlert(alertData, {
     force: Boolean(force),
     getSnapshot: () => captureSnapshotBuffer(alertData.camId, { subtype: 1, timeoutMs: 3000, quality: 3 })
@@ -361,6 +342,53 @@ app.post('/api/ia/alert', (req, res) => {
     console.warn('[IA VIGIA -> Notifier] Erro ao despachar notificações:', err.message);
   });
 
+  return alertData;
+}
+
+const vigiaEngine = new VigiaEngine({
+  getSettings: () => getAiSettings(),
+  captureSnapshot: (camId) => captureSnapshotBuffer(camId, { subtype: 1, timeoutMs: 3000, quality: 3 }),
+  getCooldownSeconds: () => notifier.config.cooldownSeconds,
+  onStatus: (status) => {
+    broadcastIaAlert({ type: 'vigia_status', status });
+  },
+  onAlarm: (alarm) => {
+    emitAlarmEvent(alarm);
+  }
+});
+
+/**
+ * ROTA SSE: Stream de Eventos em Tempo Real para Smart TVs e Dashboards
+ */
+app.get('/api/ia/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Envia confirmação de conexão ativa e status atual do Vigia 2 etapas
+  res.write(`data: ${JSON.stringify({ type: 'connected', time: Date.now() })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'vigia_status', status: vigiaEngine.getStatus() })}\n\n`);
+  sseClients.add(res);
+
+  req.on('close', () => {
+    sseClients.delete(res);
+  });
+});
+
+/**
+ * ROTA DA API: Status em tempo real do motor Vigia 2 etapas no servidor
+ */
+app.get('/api/ia/vigia-status', (req, res) => {
+  res.json(vigiaEngine.getStatus());
+});
+
+/**
+ * ROTA DA API: Notificar Alarme de IA para todas as TVs / Dashboards conectados
+ */
+app.post('/api/ia/alert', (req, res) => {
+  const { camId, targetClass, duration, force } = req.body || {};
+  emitAlarmEvent({ camId, targetClass, duration, force });
   res.json({ success: true, clientsNotified: sseClients.size });
 });
 
@@ -680,4 +708,5 @@ server.listen(PORT, () => {
   console.log('----------------------------------------------------');
   console.log('  💡 Pressione CTRL+C para encerrar o servidor.');
   console.log('====================================================');
+  vigiaEngine.start();
 });
