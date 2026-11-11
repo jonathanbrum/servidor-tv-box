@@ -73,11 +73,25 @@ const DEFAULT_AI_SETTINGS = {
   webhookUrl: ''
 };
 
+function withVigiaMeta(settings) {
+  const remainingSeconds = (settings.masterVigia && settings.vigiaActiveUntil)
+    ? Math.max(0, Math.round((settings.vigiaActiveUntil - Date.now()) / 1000))
+    : null;
+
+  return {
+    ...settings,
+    remainingSeconds,
+    serverTime: Date.now()
+  };
+}
+
 function getAiSettings() {
   try {
     if (fs.existsSync(AI_SETTINGS_FILE)) {
       const data = fs.readFileSync(AI_SETTINGS_FILE, 'utf8');
-      const settings = { ...DEFAULT_AI_SETTINGS, ...JSON.parse(data) };
+      const raw = JSON.parse(data);
+      const { remainingSeconds: _rs, serverTime: _st, ...cleanRaw } = raw;
+      const settings = { ...DEFAULT_AI_SETTINGS, ...cleanRaw };
 
       // Se passou da janela temporária configurada (ex: 30m, 1h, 4h, 12h), desativa automaticamente
       if (settings.masterVigia && settings.vigiaActiveUntil && Date.now() > settings.vigiaActiveUntil) {
@@ -89,43 +103,39 @@ function getAiSettings() {
         } catch (e) {}
       }
 
-      const remainingSeconds = (settings.masterVigia && settings.vigiaActiveUntil)
-        ? Math.max(0, Math.round((settings.vigiaActiveUntil - Date.now()) / 1000))
-        : null;
-
-      return {
-        ...settings,
-        remainingSeconds,
-        serverTime: Date.now()
-      };
+      return withVigiaMeta(settings);
     }
   } catch (err) {
     console.warn('[AI Settings] Erro ao ler ai-settings.json:', err.message);
   }
-  return { ...DEFAULT_AI_SETTINGS };
+  return withVigiaMeta({ ...DEFAULT_AI_SETTINGS });
 }
 
 function saveAiSettings(newSettings) {
   try {
-    const current = getAiSettings();
-    const updated = { ...current, ...newSettings };
+    const { remainingSeconds: _rs1, serverTime: _st1, ...cleanCurrent } = getAiSettings();
+    const { remainingSeconds: _rs2, serverTime: _st2, ...cleanNew } = newSettings || {};
+    const updated = { ...cleanCurrent, ...cleanNew };
 
     // Se o usuário ativou o vigia e informou a duração desejada (em horas ou minutos)
-    if (newSettings.masterVigia === true) {
-      const hours = newSettings.vigiaDurationHours !== undefined ? Number(newSettings.vigiaDurationHours) : (current.vigiaDurationHours || 4);
-      if (hours > 0) {
+    if (cleanNew.masterVigia === true) {
+      const hours = cleanNew.vigiaDurationHours !== undefined
+        ? Number(cleanNew.vigiaDurationHours)
+        : Number(cleanCurrent.vigiaDurationHours ?? 4);
+      if (Number.isFinite(hours) && hours > 0) {
         updated.vigiaDurationHours = hours;
         updated.vigiaActiveUntil = Date.now() + Math.round(hours * 3600 * 1000);
       } else {
         // 0 horas = contínuo (até desativar manualmente)
+        updated.vigiaDurationHours = 0;
         updated.vigiaActiveUntil = null;
       }
-    } else if (newSettings.masterVigia === false) {
+    } else if (cleanNew.masterVigia === false) {
       updated.vigiaActiveUntil = null;
     }
 
     fs.writeFileSync(AI_SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf8');
-    return updated;
+    return withVigiaMeta(updated);
   } catch (err) {
     console.error('[AI Settings] Erro ao salvar ai-settings.json:', err.message);
     throw err;

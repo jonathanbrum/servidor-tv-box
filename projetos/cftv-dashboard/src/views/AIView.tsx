@@ -292,9 +292,12 @@ export function AIView({ cameras }: AIViewProps) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data: any) => {
         if (data) {
-          if (data.masterVigia !== undefined) setMasterVigia(Boolean(data.masterVigia));
           if (data.vigiaDurationHours !== undefined) setVigiaDurationHours(Number(data.vigiaDurationHours));
-          if (data.vigiaActiveUntil !== undefined) setVigiaActiveUntil(data.vigiaActiveUntil);
+          if (data.masterVigia !== undefined) {
+            const enabled = Boolean(data.masterVigia);
+            setMasterVigia(enabled);
+            setVigiaActiveUntil(enabled ? computeLocalVigiaDeadline(data) : null);
+          }
           if (data.confidence) setSensitivity(data.confidence);
           if (data.durationSeconds)
             setLoiterSeconds(
@@ -956,10 +959,34 @@ export function AIView({ cameras }: AIViewProps) {
     }).catch(() => {});
   };
 
+  // Converte o prazo retornado pelo servidor (TV Box) para o relógio local do navegador,
+  // evitando falso "Expirado" caso haja diferença de horário entre TV Box e PC/Celular.
+  const computeLocalVigiaDeadline = (settings: {
+    masterVigia?: boolean;
+    remainingSeconds?: number | null;
+    vigiaActiveUntil?: number | null;
+    serverTime?: number;
+  }): number | null => {
+    if (!settings.masterVigia) return null;
+    if (settings.remainingSeconds !== undefined && settings.remainingSeconds !== null) {
+      return Date.now() + Math.max(0, Number(settings.remainingSeconds)) * 1000;
+    }
+    if (settings.vigiaActiveUntil && settings.serverTime) {
+      const remainingMs = Math.max(0, Number(settings.vigiaActiveUntil) - Number(settings.serverTime));
+      return Date.now() + remainingMs;
+    }
+    return settings.vigiaActiveUntil || null;
+  };
+
   const handleToggleVigia = async (enable: boolean, hours?: number) => {
     const targetHours = hours !== undefined ? hours : vigiaDurationHours;
     setMasterVigia(enable);
     if (hours !== undefined) setVigiaDurationHours(targetHours);
+    setVigiaActiveUntil(
+      enable && targetHours > 0
+        ? Date.now() + Math.round(targetHours * 3600 * 1000)
+        : null,
+    );
 
     try {
       const res = await fetch("/api/ia/settings", {
@@ -972,8 +999,9 @@ export function AIView({ cameras }: AIViewProps) {
       });
       const data = await res.json();
       if (data.success && data.settings) {
-        setMasterVigia(Boolean(data.settings.masterVigia));
-        setVigiaActiveUntil(data.settings.vigiaActiveUntil || null);
+        const enabled = Boolean(data.settings.masterVigia);
+        setMasterVigia(enabled);
+        setVigiaActiveUntil(enabled ? computeLocalVigiaDeadline(data.settings) : null);
         if (data.settings.vigiaDurationHours !== undefined) {
           setVigiaDurationHours(Number(data.settings.vigiaDurationHours));
         }
@@ -1444,7 +1472,8 @@ export function AIView({ cameras }: AIViewProps) {
                 </div>
               </div>
               <button
-                className={`switch ${masterVigia ? "on" : ""}`}
+                type="button"
+                className={`switch shrink-0 ${masterVigia ? "on" : ""}`}
                 onClick={() => handleToggleVigia(!masterVigia)}
                 title="Ativar/desativar monitoramento temporário"
               >
