@@ -6,7 +6,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --maxsockets=3
 COPY . .
 RUN npm run build
 
@@ -16,9 +16,10 @@ RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
-# Instala apenas dependências essenciais de produção para poupar RAM e disco
+# Reaproveita node_modules do builder sem baixar tudo 2x na rede e remove devDependencies
 COPY package*.json ./
-RUN npm install --omit=dev
+COPY --from=builder /app/node_modules ./node_modules
+RUN npm prune --omit=dev
 
 # Copia backend e assets estáticos
 COPY . .
