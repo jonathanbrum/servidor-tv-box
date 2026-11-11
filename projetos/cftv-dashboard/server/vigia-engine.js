@@ -187,7 +187,8 @@ class VigiaEngine {
     });
 
     this.modelPromise = (async () => {
-      const tf = require('@tensorflow/tfjs');
+      const tf = require('@tensorflow/tfjs-core');
+      require('@tensorflow/tfjs-converter');
       const { setWasmPaths, setThreadsCount } = require('@tensorflow/tfjs-backend-wasm');
       const cocoSsd = require('@tensorflow-models/coco-ssd');
 

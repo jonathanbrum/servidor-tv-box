@@ -29,8 +29,9 @@
   "license": "ISC",
   "dependencies": {
     "@tensorflow-models/coco-ssd": "^2.2.3",
-    "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
     "@tuya/tuya-connector-nodejs": "^2.1.2",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
