@@ -157,6 +157,16 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
   const [vigiaActiveUntil, setVigiaActiveUntil] = useState<number | null>(null);
   const [vigiaTimeRemaining, setVigiaTimeRemaining] = useState<string>("");
 
+  // Configurações de Calibração Dinâmica de Movimento & Presença (IA Supervisionada)
+  const [motionAutoCalibrate, setMotionAutoCalibrate] = useState(true);
+  const [motionMinThreshold, setMotionMinThreshold] = useState(1.5);
+  const [motionMaxThreshold, setMotionMaxThreshold] = useState(15.0);
+  const [motionSampleSize, setMotionSampleSize] = useState(10);
+  const [motionSampleWindowMinutes, setMotionSampleWindowMinutes] = useState(30);
+  const [motionDecayMinutes, setMotionDecayMinutes] = useState(5);
+  const [trackingHoldSeconds, setTrackingHoldSeconds] = useState(10);
+  const [showMotionConfig, setShowMotionConfig] = useState(false);
+
   // Estado da Cerca Virtual Interativa
   const [fenceName, setFenceName] = useState("Portão & Calçada");
   const [points, setPoints] = useState<Point[]>(PRESET_FENCES.portao);
@@ -284,6 +294,13 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
           if (typeof data.windowsNotify === "boolean") {
             setWindowsNotify(data.windowsNotify);
           }
+          if (typeof data.motionAutoCalibrate === "boolean") setMotionAutoCalibrate(data.motionAutoCalibrate);
+          if (data.motionMinThreshold !== undefined) setMotionMinThreshold(Number(data.motionMinThreshold));
+          if (data.motionMaxThreshold !== undefined) setMotionMaxThreshold(Number(data.motionMaxThreshold));
+          if (data.motionSampleSize !== undefined) setMotionSampleSize(Number(data.motionSampleSize));
+          if (data.motionSampleWindowMinutes !== undefined) setMotionSampleWindowMinutes(Number(data.motionSampleWindowMinutes));
+          if (data.motionDecayMinutes !== undefined) setMotionDecayMinutes(Number(data.motionDecayMinutes));
+          if (data.trackingHoldSeconds !== undefined) setTrackingHoldSeconds(Number(data.trackingHoldSeconds));
         }
       })
       .catch((err) =>
@@ -330,6 +347,25 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
           setTuyaScenes(data.scenes);
         }
       }
+    } catch (e) {}
+  };
+
+  const handleSaveMotionConfig = async (patch: Partial<{
+    motionAutoCalibrate: boolean;
+    motionMinThreshold: number;
+    motionMaxThreshold: number;
+    motionSampleSize: number;
+    motionSampleWindowMinutes: number;
+    motionDecayMinutes: number;
+    trackingHoldSeconds: number;
+  }>) => {
+    try {
+      await fetch("/api/ia/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      window.dispatchEvent(new CustomEvent("cftv-vigia-updated"));
     } catch (e) {}
   };
 
@@ -1580,6 +1616,220 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
               <span>5s (Padrão)</span>
               <span>10s (Espera)</span>
             </div>
+          </div>
+
+          {/* CALIBRAÇÃO INTELIGENTE DE MOVIMENTO & PRESENÇA (AUTO-SUPERVISIONADA POR IA) */}
+          <div className="pt-2 border-t border-[#252c30]">
+            <div className="flex items-center justify-between mb-1.5">
+              <button
+                type="button"
+                onClick={() => setShowMotionConfig(!showMotionConfig)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-neutral-200 hover:text-lime-400 transition-colors"
+              >
+                <span>⚙️</span>
+                <span>Calibração de Movimento & IA</span>
+                <span className="text-[10px] text-neutral-500 font-mono">
+                  {showMotionConfig ? "▲" : "▼"}
+                </span>
+              </button>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-lime-400/15 text-lime-400 border border-lime-400/30">
+                {vigiaStatus?.motionThresholdPct ? `${vigiaStatus.motionThresholdPct}% limiar` : `${motionMinThreshold}% mín`}
+              </span>
+            </div>
+
+            {/* Status visual em tempo real do ruído vs limiar */}
+            {vigiaStatus && (
+              <div className="p-2 rounded bg-[#0e1214] border border-[#232b2f] text-[11px] space-y-1.5 mb-2">
+                <div className="flex justify-between items-center text-neutral-400 text-[10px]">
+                  <span>Movimento na Cerca:</span>
+                  <span className="font-mono text-lime-400 font-bold">
+                    {vigiaStatus.motionPct ?? 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-[#1b2226] h-1.5 rounded-full overflow-hidden flex">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      (vigiaStatus.motionPct ?? 0) >= (vigiaStatus.motionThresholdPct ?? motionMinThreshold)
+                        ? "bg-red-400"
+                        : "bg-lime-400"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, ((vigiaStatus.motionPct ?? 0) / (motionMaxThreshold || 15)) * 100)}%`
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-neutral-500 font-mono">
+                  <span>Piso: {motionMinThreshold}%</span>
+                  <span className="text-neutral-400">
+                    Limiar Ativo: <b className="text-lime-400">{vigiaStatus.motionThresholdPct ?? motionMinThreshold}%</b>
+                  </span>
+                  <span>Teto: {motionMaxThreshold}%</span>
+                </div>
+                {vigiaStatus.isTracking && (
+                  <div className="text-[10px] text-amber-400 flex items-center gap-1 font-medium bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                    <span>⏱️</span>
+                    <span>Modo Hold Ativo: monitorando alvo parado...</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showMotionConfig && (
+              <div className="space-y-3 bg-[#121719] p-2.5 rounded-lg border border-[#252c30] text-xs">
+                {/* Switch de Auto-calibração supervisionada */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-neutral-200 block text-[11px]">
+                      Auto-Calibração Supervisionada por IA
+                    </span>
+                    <span className="text-[10px] text-neutral-400">
+                      Usa descartes da IA para ajustar contra vento e chuva
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={`switch ${motionAutoCalibrate ? "on" : ""}`}
+                    onClick={() => {
+                      const next = !motionAutoCalibrate;
+                      setMotionAutoCalibrate(next);
+                      handleSaveMotionConfig({ motionAutoCalibrate: next });
+                    }}
+                  >
+                    <i />
+                  </button>
+                </div>
+
+                {/* Range Piso Mínimo & Teto Máximo */}
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#232b2f]">
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Piso Mínimo</span>
+                      <b className="text-lime-400 font-mono">{motionMinThreshold}%</b>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="5.0"
+                      step="0.5"
+                      value={motionMinThreshold}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setMotionMinThreshold(val);
+                        handleSaveMotionConfig({ motionMinThreshold: val });
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Teto Máximo</span>
+                      <b className="text-lime-400 font-mono">{motionMaxThreshold}%</b>
+                    </div>
+                    <input
+                      type="range"
+                      min="5.0"
+                      max="30.0"
+                      step="1.0"
+                      value={motionMaxThreshold}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setMotionMaxThreshold(val);
+                        handleSaveMotionConfig({ motionMaxThreshold: val });
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Amostras de Picos & Janela de Validade */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Amostras de Picos</span>
+                      <b className="text-lime-400 font-mono">{motionSampleSize}</b>
+                    </div>
+                    <select
+                      className="w-full text-[11px] py-1 px-1.5 bg-[#0b0e10] border border-[#2c3539] rounded text-neutral-200"
+                      value={motionSampleSize}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setMotionSampleSize(val);
+                        handleSaveMotionConfig({ motionSampleSize: val });
+                      }}
+                    >
+                      <option value={5}>5 picos</option>
+                      <option value={10}>10 picos (padrão)</option>
+                      <option value={15}>15 picos</option>
+                      <option value={20}>20 picos</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Janela de Validade</span>
+                      <b className="text-lime-400 font-mono">{motionSampleWindowMinutes}m</b>
+                    </div>
+                    <select
+                      className="w-full text-[11px] py-1 px-1.5 bg-[#0b0e10] border border-[#2c3539] rounded text-neutral-200"
+                      value={motionSampleWindowMinutes}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setMotionSampleWindowMinutes(val);
+                        handleSaveMotionConfig({ motionSampleWindowMinutes: val });
+                      }}
+                    >
+                      <option value={10}>10 minutos</option>
+                      <option value={15}>15 minutos</option>
+                      <option value={30}>30 minutos (padrão)</option>
+                      <option value={60}>1 hora</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Recalibração por baixo (Decaimento) & Hold de Presença Parada */}
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#232b2f]">
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Recalibrar por baixo</span>
+                      <b className="text-lime-400 font-mono">{motionDecayMinutes}m</b>
+                    </div>
+                    <select
+                      className="w-full text-[11px] py-1 px-1.5 bg-[#0b0e10] border border-[#2c3539] rounded text-neutral-200"
+                      value={motionDecayMinutes}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setMotionDecayMinutes(val);
+                        handleSaveMotionConfig({ motionDecayMinutes: val });
+                      }}
+                    >
+                      <option value={2}>2 min sem mov.</option>
+                      <option value={5}>5 min sem mov. (padrão)</option>
+                      <option value={10}>10 min sem mov.</option>
+                      <option value={15}>15 min sem mov.</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                      <span>Hold Pessoa Imóvel</span>
+                      <b className="text-lime-400 font-mono">{trackingHoldSeconds}s</b>
+                    </div>
+                    <select
+                      className="w-full text-[11px] py-1 px-1.5 bg-[#0b0e10] border border-[#2c3539] rounded text-neutral-200"
+                      value={trackingHoldSeconds}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setTrackingHoldSeconds(val);
+                        handleSaveMotionConfig({ trackingHoldSeconds: val });
+                      }}
+                    >
+                      <option value={5}>5s após parada</option>
+                      <option value={10}>10s (padrão)</option>
+                      <option value={15}>15s de tolerância</option>
+                      <option value={20}>20s de tolerância</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* MÓDULO DE NOTIFICAÇÕES (WINDOWS & ANDROID) */}

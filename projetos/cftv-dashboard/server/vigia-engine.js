@@ -123,14 +123,22 @@ class VigiaEngine {
     this.running = false;
     this.timerId = null;
 
-    // Estado da Etapa 1 (movimento)
+    // Estado da Etapa 1 (movimento e calibração dinâmica)
     this.prevFenceKey = '';
     this.prevLuma = null;
     this.activeMotionUntil = 0;
+    this.lastMotionAt = 0; // Timestamp do último movimento acima do piso
 
-    // Estado da Etapa 2 (permanência e alarme)
+    // Memória de calibração supervisionada pela IA
+    // Guarda amostras recentes { pct: number, isTarget: boolean, timestamp: number }
+    this.motionHistory = [];
+    this.currentThreshold = 1.5;
+
+    // Estado da Etapa 2 (permanência, tracking de presença contínua e alarme)
     this.loiterStartAt = null;
     this.lastAlarmAt = 0;
+    this.trackingActiveUntil = 0; // Mantém a IA ativa mesmo se o alvo ficar imóvel
+    this.lastConfirmedTarget = null; // Último objeto confirmado pela IA
 
     this.status = {
       enabled: false,
@@ -138,6 +146,9 @@ class VigiaEngine {
       modelLoaded: false,
       modelLoading: false,
       motionPct: 0,
+      motionThresholdPct: 1.5,
+      motionBaselinePct: 0.5,
+      isTracking: false,
       lastCheckAt: null,
       lastInferenceMs: null,
       detection: null,
@@ -243,6 +254,9 @@ class VigiaEngine {
     this.prevFenceKey = '';
     this.loiterStartAt = null;
     this.activeMotionUntil = 0;
+    this.trackingActiveUntil = 0;
+    this.lastConfirmedTarget = null;
+    this.motionHistory = [];
 
     if (this.model) {
       try {
@@ -257,15 +271,84 @@ class VigiaEngine {
       modelLoaded: false,
       modelLoading: false,
       motionPct: 0,
+      isTracking: false,
       detection: null,
       message: 'Vigia em repouso econômico'
     });
   }
 
   /**
+   * Adiciona uma amostra no histórico da calibração supervisionada pela IA
+   */
+  recordMotionSample(pct, isTarget, cfg) {
+    const now = Date.now();
+    const sampleWindowMs = Math.max(5, Number(cfg?.motionSampleWindowMinutes ?? 30)) * 60 * 1000;
+    const maxSamples = Math.max(3, Number(cfg?.motionSampleSize ?? 10));
+
+    // Limpa amostras expiradas pela janela de tempo
+    this.motionHistory = this.motionHistory.filter(s => now - s.timestamp <= sampleWindowMs);
+
+    this.motionHistory.push({ pct, isTarget, timestamp: now });
+    if (this.motionHistory.length > maxSamples * 2) {
+      this.motionHistory.splice(0, this.motionHistory.length - maxSamples * 2);
+    }
+  }
+
+  /**
+   * Calcula o limiar ótimo auto-calibrado respeitando o piso, o teto e o decaimento por repouso
+   */
+  computeDynamicThreshold(cfg) {
+    const minFloor = Number(cfg?.motionMinThreshold ?? 1.5);
+    const maxCeiling = Number(cfg?.motionMaxThreshold ?? 15.0);
+    const margin = Number(cfg?.motionMarginOffset ?? 0.8);
+    const decayMinutes = Math.max(1, Number(cfg?.motionDecayMinutes ?? 5));
+    const now = Date.now();
+
+    // Se o usuário desativou a auto-calibração, usa o piso mínimo configurado diretamente
+    if (cfg?.motionAutoCalibrate === false) {
+      this.currentThreshold = minFloor;
+      return { threshold: minFloor, baseline: minFloor };
+    }
+
+    // Filtra amostras dentro da janela
+    const sampleWindowMs = Math.max(5, Number(cfg?.motionSampleWindowMinutes ?? 30)) * 60 * 1000;
+    const validSamples = this.motionHistory.filter(s => now - s.timestamp <= sampleWindowMs);
+
+    // Amostras onde a IA descartou (falsos positivos como vento, luz, árvores)
+    const falsePositives = validSamples.filter(s => !s.isTarget).map(s => s.pct);
+
+    let baseline = minFloor;
+    if (falsePositives.length > 0) {
+      // Pega o maior ruído recente descartado
+      const maxNoise = Math.max(...falsePositives);
+      baseline = Math.round(maxNoise * 10) / 10;
+    }
+
+    let calculated = baseline + margin;
+
+    // Recalibração por baixo (Decaimento suave quando o ambiente se acalma)
+    const timeSinceLastMotionMs = now - (this.lastMotionAt || now);
+    const decayPeriodMs = decayMinutes * 60 * 1000;
+    if (timeSinceLastMotionMs > decayPeriodMs && calculated > minFloor) {
+      // Quanto mais tempo quieto, mais o limiar desce gradualmente em direção ao piso
+      const factor = Math.min(1, (timeSinceLastMotionMs - decayPeriodMs) / decayPeriodMs);
+      calculated = calculated - (calculated - minFloor) * factor * 0.5;
+    }
+
+    // Trava estritamente entre o Piso Mínimo e o Teto Máximo configurados pelo usuário
+    const finalThreshold = Math.max(minFloor, Math.min(maxCeiling, Math.round(calculated * 10) / 10));
+    this.currentThreshold = finalThreshold;
+
+    return {
+      threshold: finalThreshold,
+      baseline
+    };
+  }
+
+  /**
    * Etapa 1: Amostra uma grade 60x36 dentro da cerca e calcula % de pixels alterados.
    */
-  detectFenceMotion(raw, poly, camId) {
+  detectFenceMotion(raw, poly, camId, cfg) {
     const { width, height, data } = raw;
     const fenceKey = `${camId}:${width}x${height}:${JSON.stringify(poly)}`;
     const cols = 60;
@@ -292,7 +375,7 @@ class VigiaEngine {
     ) {
       this.prevFenceKey = fenceKey;
       this.prevLuma = current;
-      return { hasMotion: false, motionPct: 0, baseline: true };
+      return { hasMotion: false, motionPct: 0, baseline: true, threshold: this.currentThreshold };
     }
 
     let changed = 0;
@@ -306,8 +389,17 @@ class VigiaEngine {
     const total = Math.max(1, current.length);
     const ratio = changed / total;
     const motionPct = Math.round(ratio * 1000) / 10;
-    const hasMotion = ratio >= 0.015 || changed >= 10;
-    return { hasMotion, motionPct, baseline: false };
+
+    const { threshold, baseline } = this.computeDynamicThreshold(cfg);
+    const targetRatio = threshold / 100;
+    const minPixels = Math.max(6, Math.round(total * targetRatio));
+
+    const hasMotion = ratio >= targetRatio || changed >= minPixels;
+    if (hasMotion) {
+      this.lastMotionAt = Date.now();
+    }
+
+    return { hasMotion, motionPct, baseline: false, threshold, baselineNoise: baseline };
   }
 
   /**
@@ -412,23 +504,29 @@ class VigiaEngine {
       const raw = jpeg.decode(snapBuf, { useTArray: true });
       const now = Date.now();
 
-      const motion = this.detectFenceMotion(raw, poly, camId);
+      const motion = this.detectFenceMotion(raw, poly, camId, cfg);
+      const isTracking = now < this.trackingActiveUntil;
+
       if (motion.hasMotion) {
         this.activeMotionUntil = now + 7000;
       }
 
-      const inMotionWindow = motion.hasMotion || now < this.activeMotionUntil;
+      const inMotionWindow = motion.hasMotion || now < this.activeMotionUntil || isTracking;
       if (!inMotionWindow) {
         this.loiterStartAt = null;
+        this.lastConfirmedTarget = null;
         this.updateStatus({
           enabled: true,
           stage: 'watching',
           motionPct: motion.motionPct,
+          motionThresholdPct: motion.threshold,
+          motionBaselinePct: motion.baselineNoise,
+          isTracking: false,
           lastCheckAt: new Date(now).toISOString(),
           detection: null,
           message: motion.baseline
             ? 'Referência da cerca calibrada'
-            : `Sem movimento na cerca (${motion.motionPct}%)`
+            : `Sem movimento relevante na cerca (${motion.motionPct}% · limiar: ${motion.threshold}%)`
         });
         this.scheduleNext(1500);
         return;
@@ -440,6 +538,9 @@ class VigiaEngine {
           enabled: true,
           stage: 'loading-model',
           motionPct: motion.motionPct,
+          motionThresholdPct: motion.threshold,
+          motionBaselinePct: motion.baselineNoise,
+          isTracking,
           lastCheckAt: new Date(now).toISOString(),
           message: `Movimento (${motion.motionPct}%) · preparando IA...`
         });
@@ -448,7 +549,16 @@ class VigiaEngine {
       }
 
       const { bestMatch, inferenceMs } = await this.confirmWithAi(raw, cfg, poly);
+      const holdSeconds = Math.max(3, Number(cfg?.trackingHoldSeconds ?? 10));
+
       if (bestMatch) {
+        // Supervisionamento da IA: registra que esse nível de movimento conteve alvo real
+        this.recordMotionSample(motion.motionPct, true, cfg);
+
+        // Ativa o Hold de Presença (continua rastreando e contando tempo mesmo imóvel)
+        this.trackingActiveUntil = now + (holdSeconds * 1000);
+        this.lastConfirmedTarget = bestMatch;
+
         if (!this.loiterStartAt) {
           this.loiterStartAt = now;
         }
@@ -459,6 +569,9 @@ class VigiaEngine {
           enabled: true,
           stage: 'detected',
           motionPct: motion.motionPct,
+          motionThresholdPct: motion.threshold,
+          motionBaselinePct: motion.baselineNoise,
+          isTracking: true,
           lastCheckAt: new Date(now).toISOString(),
           lastInferenceMs: inferenceMs,
           detection: {
@@ -466,7 +579,7 @@ class VigiaEngine {
             duration: Math.round(elapsedSec * 10) / 10,
             camId
           },
-          message: `IA confirmou ${bestMatch.targetClass} (${bestMatch.confidence}%) em ${inferenceMs}ms`
+          message: `IA confirmou ${bestMatch.targetClass} (${bestMatch.confidence}%) · Permanência: ${Math.round(elapsedSec)}s`
         });
 
         const cooldownSec = typeof this.getCooldownSeconds === 'function'
@@ -487,17 +600,45 @@ class VigiaEngine {
         }
         nextDelay = 1200;
       } else {
-        this.loiterStartAt = null;
-        this.updateStatus({
-          enabled: true,
-          stage: 'filtered',
-          motionPct: motion.motionPct,
-          lastCheckAt: new Date(now).toISOString(),
-          lastInferenceMs: inferenceMs,
-          detection: null,
-          message: `Movimento (${motion.motionPct}%) ignorado pela IA (${inferenceMs}ms)`
-        });
-        nextDelay = 1500;
+        // Se a IA não viu ninguém:
+        // Caso estivesse em tracking recente, dá uma tolerância curta antes de resetar permanência
+        if (isTracking && this.lastConfirmedTarget) {
+          const remainingTracking = Math.round((this.trackingActiveUntil - now) / 1000);
+          this.updateStatus({
+            enabled: true,
+            stage: 'watching',
+            motionPct: motion.motionPct,
+            motionThresholdPct: motion.threshold,
+            motionBaselinePct: motion.baselineNoise,
+            isTracking: true,
+            lastCheckAt: new Date(now).toISOString(),
+            lastInferenceMs: inferenceMs,
+            message: `Alvo sumiu da cerca? Revalidando (${remainingTracking}s)...`
+          });
+          nextDelay = 1200;
+        } else {
+          // Movimento que a IA confirmou NÃO ser alvo (vento, folhas, iluminação)
+          if (motion.motionPct > 0) {
+            this.recordMotionSample(motion.motionPct, false, cfg);
+          }
+          this.loiterStartAt = null;
+          this.lastConfirmedTarget = null;
+          this.trackingActiveUntil = 0;
+
+          this.updateStatus({
+            enabled: true,
+            stage: 'filtered',
+            motionPct: motion.motionPct,
+            motionThresholdPct: motion.threshold,
+            motionBaselinePct: motion.baselineNoise,
+            isTracking: false,
+            lastCheckAt: new Date(now).toISOString(),
+            lastInferenceMs: inferenceMs,
+            detection: null,
+            message: `Movimento (${motion.motionPct}%) descartado pela IA (Ruído filtrado)`
+          });
+          nextDelay = 1500;
+        }
       }
     } catch (err) {
       this.updateStatus({

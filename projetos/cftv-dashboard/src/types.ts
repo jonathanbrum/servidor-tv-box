@@ -71,6 +71,15 @@ export interface AiSettings {
   fencePoints?: Array<{ x: number; y: number }>;
   remainingSeconds?: number | null;
   serverTime?: number;
+  // Calibração Dinâmica de Movimento & Presença
+  motionAutoCalibrate?: boolean;
+  motionMinThreshold?: number; // Piso mínimo (ex: 1.5%)
+  motionMaxThreshold?: number; // Teto máximo (ex: 15.0%)
+  motionMarginOffset?: number; // Margem acima do ruído (ex: 0.8%)
+  motionSampleSize?: number; // Quantidade de picos na memória (ex: 10)
+  motionSampleWindowMinutes?: number; // Janela de validade dos picos (ex: 30)
+  motionDecayMinutes?: number; // Minutos sem movimento para decair ao piso (ex: 5)
+  trackingHoldSeconds?: number; // Segundos de persistência da IA para pessoa parada (ex: 10)
 }
 
 export interface NotifyConfig {
@@ -105,6 +114,9 @@ export interface VigiaStatus {
   modelLoaded: boolean;
   modelLoading: boolean;
   motionPct: number;
+  motionThresholdPct?: number; // Limiar dinâmico ativo calculado pela calibração
+  motionBaselinePct?: number; // Ruído de fundo estimado
+  isTracking?: boolean; // Se está no modo de acompanhamento de presença (pessoa imóvel)
   lastCheckAt: string | null;
   lastInferenceMs: number | null;
   detection: VigiaDetection | null;

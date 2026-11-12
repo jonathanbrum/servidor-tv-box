@@ -72,7 +72,16 @@ const DEFAULT_AI_SETTINGS = {
   enabledClasses: ['person', 'car', 'motorcycle'],
   soundAlert: true,
   windowsNotify: true,
-  webhookUrl: ''
+  webhookUrl: '',
+  // Parâmetros de calibração dinâmica de movimento & rastreamento contínuo
+  motionAutoCalibrate: true,
+  motionMinThreshold: 1.5, // Piso mínimo padrão de 1.5%
+  motionMaxThreshold: 15.0, // Teto máximo padrão de 15.0% (permite carros e objetos grandes)
+  motionMarginOffset: 0.8, // Margem de segurança acima do ruído (0.8%)
+  motionSampleSize: 10, // Quantidade de picos guardados na memória
+  motionSampleWindowMinutes: 30, // Janela de validade dos picos (30 minutos)
+  motionDecayMinutes: 5, // Tempo em repouso para decair em direção ao piso
+  trackingHoldSeconds: 10 // Tempo que mantém checagem da IA ativa com alvo parado
 };
 
 function withVigiaMeta(settings) {
