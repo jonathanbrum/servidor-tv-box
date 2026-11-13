@@ -15,48 +15,20 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
   const [active, setActive] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [recordings, setRecordings] = useState<RecordingItem[]>([]);
 
-  const [recordings, setRecordings] = useState<RecordingItem[]>([
-    {
-      camId: 'cam2',
-      fileName: 'rec_20261110_143208.mp4',
-      startTime: '14:32:08',
-      endTime: '14:34:22',
-      duration: '02:14',
-      type: 'Movimento',
-      status: 'Disponível',
-    },
-    {
-      camId: 'cam2',
-      fileName: 'rec_20261110_121844.mp4',
-      startTime: '12:18:44',
-      endTime: '12:19:52',
-      duration: '01:08',
-      type: 'Movimento',
-      status: 'Disponível',
-    },
-    {
-      camId: 'cam2',
-      fileName: 'rec_20261110_100000.mp4',
-      startTime: '10:00:00',
-      endTime: '10:30:00',
-      duration: '30:00',
-      type: 'Contínua',
-      status: 'Disponível',
-    },
-    {
-      camId: 'cam2',
-      fileName: 'rec_20261110_093000.mp4',
-      startTime: '09:30:00',
-      endTime: '10:00:00',
-      duration: '30:00',
-      type: 'Contínua',
-      status: 'Disponível',
-    },
-  ]);
+  const formatDuration = (sec?: number) => {
+    const s = Math.max(0, Math.round(Number(sec) || 0));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+  };
 
   const fetchRecordings = async () => {
     setLoading(true);
+    setErrorMsg(null);
+    setIsPlaying(false);
     let targetDate = customDate;
     if (dateType === 'today') {
       targetDate = new Date().toISOString().slice(0, 10);
@@ -68,15 +40,29 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
 
     try {
       const res = await fetch(`/api/recordings/${selectedCam}?date=${targetDate}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setRecordings(data);
-          setActive(0);
-        }
+      const data = await res.json();
+      if (!res.ok || data?.success === false) {
+        setRecordings([]);
+        setErrorMsg(data?.error || 'Falha ao consultar gravações da câmera.');
+        return;
       }
-    } catch (e) {
-      console.warn('[Recordings] Usando lista em cache:', e);
+
+      const rawList = Array.isArray(data) ? data : (Array.isArray(data?.recordings) ? data.recordings : []);
+      const mapped: RecordingItem[] = rawList.map((item: any) => ({
+        camId: selectedCam,
+        fileName: item.fileName,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        duration: item.duration || formatDuration(item.durationSeconds),
+        type: item.typeLabel || (item.type === 'motion' ? 'Movimento' : 'Contínua'),
+        status: item.status || 'Disponível',
+      }));
+
+      setRecordings(mapped);
+      setActive(0);
+    } catch (e: any) {
+      setRecordings([]);
+      setErrorMsg(e?.message || 'Erro de conexão com o servidor.');
     } finally {
       setLoading(false);
     }
@@ -84,9 +70,12 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
 
   useEffect(() => {
     fetchRecordings();
-  }, [selectedCam, dateType]);
+  }, [selectedCam, dateType, customDate]);
 
-  const activeRec = recordings[active] || recordings[0];
+  const activeRec = recordings[active] || null;
+  const activeStreamUrl = activeRec
+    ? `/api/recordings/${selectedCam}/stream?fileName=${encodeURIComponent(activeRec.fileName)}&startTime=${encodeURIComponent(activeRec.startTime)}&endTime=${encodeURIComponent(activeRec.endTime)}`
+    : '';
   const camName = selectedCam === 'cam2'
     ? (cameras.cam2?.name ? `CAM 2 (${cameras.cam2.name})` : 'Portão principal')
     : (cameras.cam1?.name ? `CAM 1 (${cameras.cam1.name})` : 'Fundos / Jardim');
@@ -161,9 +150,10 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
 
       <div className="record-layout">
         <div className="video-player">
-          {isPlaying ? (
+          {isPlaying && activeRec ? (
             <video
-              src="/samples/gravacao_cam2_h264.mp4"
+              key={activeStreamUrl}
+              src={activeStreamUrl}
               controls
               autoPlay
               className="w-full h-full object-cover"
@@ -172,21 +162,23 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
           ) : (
             <>
               <img
-                src={selectedCam === 'cam2' ? '/samples/gravacao_real_cam2.jpg' : '/test_camera1.jpg'}
-                alt="Reprodução da gravação"
+                src={`/api/snapshot/${selectedCam}`}
+                alt="Prévia da câmera"
                 onError={(e) => {
                   e.currentTarget.src = '/samples/carro_portao.jpg';
                 }}
               />
-              <button className="big-play" onClick={() => setIsPlaying(true)} title="Reproduzir clipe">
-                <Icon name="play" size={28} />
-              </button>
+              {activeRec && (
+                <button className="big-play" onClick={() => setIsPlaying(true)} title="Reproduzir clipe">
+                  <Icon name="play" size={28} />
+                </button>
+              )}
               <div className="video-timeline">
-                <span>00:42</span>
+                <span>{activeRec ? activeRec.startTime.slice(-8) : '00:00'}</span>
                 <i>
                   <em />
                 </i>
-                <span>{activeRec ? activeRec.duration : '02:14'}</span>
+                <span>{activeRec ? activeRec.duration : '00:00'}</span>
               </div>
             </>
           )}
@@ -221,42 +213,52 @@ export function RecordView({ cameras, onNavigateTab }: RecordViewProps) {
             </tr>
           </thead>
           <tbody>
-            {recordings.map((r, i) => (
-              <tr
-                key={i}
-                className={active === i ? 'selected' : ''}
-                onClick={() => {
-                  setActive(i);
-                  setIsPlaying(true);
-                }}
-              >
-                <td>
-                  <b>{r.startTime}</b>
-                </td>
-                <td>{r.duration}</td>
-                <td>
-                  <span className={`type-tag ${r.type === 'Movimento' ? 'motion' : ''}`}>
-                    {r.type}
-                  </span>
-                </td>
-                <td>
-                  <span className="available">
-                    <i />
-                    {r.status}
-                  </span>
-                </td>
-                <td>
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setActive(i);
-                    setIsPlaying(true);
-                  }}>
-                    <Icon name="play" size={14} />
-                    Reproduzir
-                  </button>
+            {recordings.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-6 text-neutral-400 text-xs">
+                  {loading
+                    ? 'Consultando cartão SD / memória da câmera...'
+                    : errorMsg || 'Nenhuma gravação encontrada para esta data.'}
                 </td>
               </tr>
-            ))}
+            ) : (
+              recordings.map((r, i) => (
+                <tr
+                  key={r.fileName || i}
+                  className={active === i ? 'selected' : ''}
+                  onClick={() => {
+                    setActive(i);
+                    setIsPlaying(true);
+                  }}
+                >
+                  <td>
+                    <b>{r.startTime}</b>
+                  </td>
+                  <td>{r.duration}</td>
+                  <td>
+                    <span className={`type-tag ${r.type === 'Movimento' ? 'motion' : ''}`}>
+                      {r.type}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="available">
+                      <i />
+                      {r.status}
+                    </span>
+                  </td>
+                  <td>
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      setActive(i);
+                      setIsPlaying(true);
+                    }}>
+                      <Icon name="play" size={14} />
+                      Reproduzir
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
