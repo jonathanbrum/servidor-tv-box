@@ -4,6 +4,7 @@
 * **📖 Como Mexer nos Apps**
   * [🚀 Central de Projetos (Hub de Links)](docs/14-manual-central-de-projetos-hub.md)
   * [📁 File Browser (Seu Drive Pessoal)](docs/17-manual-filebrowser-drive-pessoal.md)
+  * [💾 MicroSD WD 32GB & HD Removível](docs/19-migracao-microsd-wd32gb-e-hd-removivel.md)
   * [📡 Controle Remoto (Calibrador e Ações)](docs/15-calibracao-e-acoes-do-controle-remoto.md)
   * [🐳 Portainer (Subir Repo do GitHub)](docs/08-manual-portainer-deploy-github.md)
   * [⚡ PocketBase (Banco, Login e Sites)](docs/09-manual-pocketbase-banco-e-api.md)
