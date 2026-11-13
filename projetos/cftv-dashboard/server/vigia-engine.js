@@ -4,6 +4,9 @@ const jpeg = require('jpeg-js');
 
 const MODEL_CACHE_DIR = path.join(__dirname, 'models', 'ssdlite_mobilenet_v2');
 const MODEL_REMOTE_BASE = 'https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/';
+const DIAG_DIR = path.join(__dirname, 'vigia-diagnostics');
+const DIAG_INDEX_FILE = path.join(DIAG_DIR, 'index.json');
+const DIAG_MAX_ITEMS = 30;
 
 const COCO_TO_SETTING_CLASS = {
   person: 'person',
@@ -139,6 +142,7 @@ class VigiaEngine {
     this.lastAlarmAt = 0;
     this.trackingActiveUntil = 0; // Mantém a IA ativa mesmo se o alvo ficar imóvel
     this.lastConfirmedTarget = null; // Último objeto confirmado pela IA
+    this.lastDiagAt = 0; // Throttle dos prints de diagnóstico de descarte
 
     this.status = {
       enabled: false,
@@ -402,6 +406,73 @@ class VigiaEngine {
     return { hasMotion, motionPct, baseline: false, threshold, baselineNoise: baseline };
   }
 
+  getDiagnostics() {
+    try {
+      if (!fs.existsSync(DIAG_INDEX_FILE)) return [];
+      const parsed = JSON.parse(fs.readFileSync(DIAG_INDEX_FILE, 'utf8'));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  clearDiagnostics() {
+    try {
+      if (fs.existsSync(DIAG_DIR)) {
+        for (const f of fs.readdirSync(DIAG_DIR)) {
+          fs.unlinkSync(path.join(DIAG_DIR, f));
+        }
+      }
+    } catch {}
+    return [];
+  }
+
+  saveDiagnosticSample({ snapBuf, camId, motionPct, thresholdPct, minConfidence, reason, predictions, inferenceMs }) {
+    const now = Date.now();
+    if (now - this.lastDiagAt < 10000) return; // Máximo 1 print a cada 10s
+    this.lastDiagAt = now;
+
+    try {
+      fs.mkdirSync(DIAG_DIR, { recursive: true });
+      const id = `diag_${now}`;
+      const jpgPath = path.join(DIAG_DIR, `${id}.jpg`);
+      fs.writeFileSync(jpgPath, snapBuf);
+
+      const list = this.getDiagnostics();
+      const entry = {
+        id,
+        timestamp: new Date(now).toISOString(),
+        camId,
+        motionPct,
+        thresholdPct,
+        minConfidence,
+        reason,
+        inferenceMs,
+        predictions: (predictions || []).slice(0, 6),
+        imageUrl: `/api/ia/diagnostics/${id}.jpg`
+      };
+
+      list.unshift(entry);
+      while (list.length > DIAG_MAX_ITEMS) {
+        const removed = list.pop();
+        if (removed?.id) {
+          const oldJpg = path.join(DIAG_DIR, `${removed.id}.jpg`);
+          if (fs.existsSync(oldJpg)) {
+            try { fs.unlinkSync(oldJpg); } catch {}
+          }
+        }
+      }
+
+      fs.writeFileSync(DIAG_INDEX_FILE, JSON.stringify(list, null, 2));
+      const predsText = entry.predictions.length > 0
+        ? entry.predictions.map(p => `${p.rawClass}:${p.confidence}%${p.insideFence ? '' : '(fora)'}`).join(', ')
+        : 'nenhum objeto';
+      console.log(`[VigiaDiag 📸] ${camId} | mov=${motionPct}% (limiar=${thresholdPct}%) | minConf=${minConfidence}% | ${reason} | IA=[${predsText}]`);
+    } catch (err) {
+      console.warn('[VigiaDiag] Falha ao salvar print:', err.message);
+    }
+  }
+
   /**
    * Etapa 2: Roda COCO-SSD WASM apenas sobre o quadro com movimento.
    */
@@ -432,10 +503,10 @@ class VigiaEngine {
     const scaleY = 360 / raw.height;
 
     let bestMatch = null;
+    const rawPredictions = [];
     for (const pred of predictions) {
-      const mappedClass = COCO_TO_SETTING_CLASS[pred.class];
-      if (!mappedClass || !enabled.includes(mappedClass)) continue;
-      if (pred.score < minScore) continue;
+      const mappedClass = COCO_TO_SETTING_CLASS[pred.class] || null;
+      const conf = Math.round(pred.score * 100);
 
       const [bx, by, bw, bh] = pred.bbox;
       const targetX = bx * scaleX;
@@ -445,9 +516,27 @@ class VigiaEngine {
       const cx = targetX + targetW / 2;
       const feetY = targetY + targetH;
       const cy = targetY + targetH / 2;
+      const insideFence = isPointInPoly({ x: cx, y: feetY }, poly) || isPointInPoly({ x: cx, y: cy }, poly);
 
-      if (isPointInPoly({ x: cx, y: feetY }, poly) || isPointInPoly({ x: cx, y: cy }, poly)) {
-        const conf = Math.round(pred.score * 100);
+      if (conf >= 20) {
+        rawPredictions.push({
+          rawClass: pred.class,
+          mappedClass,
+          confidence: conf,
+          insideFence,
+          bbox: {
+            x: Math.round(targetX),
+            y: Math.round(targetY),
+            w: Math.round(targetW),
+            h: Math.round(targetH)
+          }
+        });
+      }
+
+      if (!mappedClass || !enabled.includes(mappedClass)) continue;
+      if (pred.score < minScore) continue;
+
+      if (insideFence) {
         if (!bestMatch || conf > bestMatch.confidence) {
           bestMatch = {
             targetClass: mappedClass,
@@ -464,7 +553,7 @@ class VigiaEngine {
       }
     }
 
-    return { bestMatch, inferenceMs };
+    return { bestMatch, rawPredictions, inferenceMs };
   }
 
   async tick() {
@@ -548,7 +637,7 @@ class VigiaEngine {
         return;
       }
 
-      const { bestMatch, inferenceMs } = await this.confirmWithAi(raw, cfg, poly);
+      const { bestMatch, rawPredictions, inferenceMs } = await this.confirmWithAi(raw, cfg, poly);
       const holdSeconds = Math.max(3, Number(cfg?.trackingHoldSeconds ?? 10));
 
       if (bestMatch) {
@@ -621,6 +710,34 @@ class VigiaEngine {
           if (motion.motionPct > 0) {
             this.recordMotionSample(motion.motionPct, false, cfg);
           }
+
+          // Salva print + log para auditoria se foi movimento alto (>= 8%) ou se a IA viu alvo abaixo da confiança/fora da cerca
+          const minConf = cfg.confidence || 55;
+          const enabled = cfg.enabledClasses || ['person', 'car', 'motorcycle'];
+          const nearMiss = (rawPredictions || []).some(p => (p.mappedClass && enabled.includes(p.mappedClass) && p.confidence >= 25) || p.confidence >= 40);
+          if (motion.motionPct >= 8 || nearMiss) {
+            let reason = 'Nenhum objeto reconhecido pela IA';
+            if ((rawPredictions || []).some(p => p.mappedClass && enabled.includes(p.mappedClass) && !p.insideFence && p.confidence >= minConf)) {
+              reason = 'Objeto detectado fora da cerca virtual';
+            } else if ((rawPredictions || []).some(p => p.mappedClass && enabled.includes(p.mappedClass) && p.confidence < minConf)) {
+              reason = `Confiança abaixo do mínimo (${minConf}%)`;
+            } else if ((rawPredictions || []).length > 0) {
+              reason = 'Classe ignorada / abaixo do filtro';
+            } else if (motion.motionPct >= 8) {
+              reason = `Movimento alto (${motion.motionPct}%) sem detecção`;
+            }
+            this.saveDiagnosticSample({
+              snapBuf,
+              camId,
+              motionPct: motion.motionPct,
+              thresholdPct: motion.threshold,
+              minConfidence: minConf,
+              reason,
+              predictions: rawPredictions,
+              inferenceMs
+            });
+          }
+
           this.loiterStartAt = null;
           this.lastConfirmedTarget = null;
           this.trackingActiveUntil = 0;

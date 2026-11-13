@@ -167,6 +167,31 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
   const [trackingHoldSeconds, setTrackingHoldSeconds] = useState(10);
   const [showMotionConfig, setShowMotionConfig] = useState(false);
 
+  // Auditoria de Prints Descartados (Logs da IA)
+  const [showDiagPanel, setShowDiagPanel] = useState(false);
+  const [diagItems, setDiagItems] = useState<any[]>([]);
+  const [diagLoading, setDiagLoading] = useState(false);
+
+  const fetchDiagnostics = async () => {
+    setDiagLoading(true);
+    try {
+      const r = await fetch("/api/ia/diagnostics");
+      if (r.ok) {
+        const data = await r.json();
+        setDiagItems(Array.isArray(data.items) ? data.items : []);
+      }
+    } catch {} finally {
+      setDiagLoading(false);
+    }
+  };
+
+  const clearDiagnostics = async () => {
+    try {
+      await fetch("/api/ia/diagnostics", { method: "DELETE" });
+      setDiagItems([]);
+    } catch {}
+  };
+
   // Estado da Cerca Virtual Interativa
   const [fenceName, setFenceName] = useState("Portão & Calçada");
   const [points, setPoints] = useState<Point[]>(PRESET_FENCES.portao);
@@ -1722,7 +1747,7 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
                   </div>
                   <div>
                     <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
-                      <span>Teto Máximo</span>
+                      <span title="Limite máximo do piso de ruído na auto-calibração (não bloqueia movimentos maiores)">Teto do Ruído</span>
                       <b className="text-lime-400 font-mono">{motionMaxThreshold}%</b>
                     </div>
                     <input
@@ -1828,6 +1853,103 @@ export function AIView({ cameras, vigiaStatus }: AIViewProps) {
                     </select>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* MÓDULO DE AUDITORIA DE PRINTS DESCARTADOS PELA IA */}
+          <div className="pt-2 border-t border-[#252c30]">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-xs font-bold text-neutral-300 hover:text-lime-400 transition-colors"
+                onClick={() => {
+                  const next = !showDiagPanel;
+                  setShowDiagPanel(next);
+                  if (next) fetchDiagnostics();
+                }}
+              >
+                <span>📸 Auditoria de Prints Descartados</span>
+                <span className="text-[10px] text-neutral-500">
+                  {showDiagPanel ? "▲" : "▼"}
+                </span>
+              </button>
+              {showDiagPanel && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={fetchDiagnostics}
+                    className="px-2 py-0.5 rounded bg-[#1b2226] hover:bg-[#252f35] text-[10px] text-neutral-300"
+                  >
+                    {diagLoading ? "..." : "Atualizar"}
+                  </button>
+                  {diagItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearDiagnostics}
+                      className="px-2 py-0.5 rounded bg-red-500/15 hover:bg-red-500/25 text-[10px] text-red-400 border border-red-500/30"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {showDiagPanel && (
+              <div className="mt-2 space-y-2 max-h-80 overflow-y-auto pr-1">
+                {diagItems.length === 0 ? (
+                  <div className="p-2.5 rounded bg-[#121719] border border-[#252c30] text-[11px] text-neutral-400">
+                    Nenhum print salvo ainda. Quando houver movimento alto (≥ 8%) ou alvo abaixo da confiança mínima sem gerar alarme, o frame e a leitura da IA aparecerão aqui.
+                  </div>
+                ) : (
+                  diagItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-2 rounded-lg bg-[#121719] border border-[#252c30] text-[11px] space-y-1.5"
+                    >
+                      <div className="flex gap-2">
+                        <a
+                          href={item.imageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0"
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt="Frame descartado"
+                            className="w-24 h-14 object-cover rounded border border-[#2c3539]"
+                          />
+                        </a>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+                            <span>{item.camId} · mov {item.motionPct}%</span>
+                            <span>mín {item.minConfidence}%</span>
+                          </div>
+                          <div className="text-[11px] font-semibold text-amber-400 truncate">
+                            {item.reason}
+                          </div>
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {Array.isArray(item.predictions) && item.predictions.length > 0 ? (
+                              item.predictions.map((p: any, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#1b2226] text-neutral-200 border border-[#2c3539]"
+                                >
+                                  {p.rawClass} {p.confidence}%{p.insideFence ? "" : " (fora)"}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[10px] text-neutral-500">
+                                IA não detectou objetos (≥20%)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

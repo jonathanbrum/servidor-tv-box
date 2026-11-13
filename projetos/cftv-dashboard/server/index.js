@@ -393,6 +393,30 @@ app.get('/api/ia/vigia-status', (req, res) => {
 });
 
 /**
+ * ROTAS DA API: Auditoria de Movimentos Descartados (Prints + Logs da IA)
+ */
+app.get('/api/ia/diagnostics', (req, res) => {
+  res.json({ items: vigiaEngine.getDiagnostics() });
+});
+
+app.get('/api/ia/diagnostics/:filename', (req, res) => {
+  const safeName = path.basename(req.params.filename || '');
+  if (!safeName.endsWith('.jpg')) {
+    return res.status(400).json({ error: 'Arquivo inválido' });
+  }
+  const filePath = path.join(__dirname, 'vigia-diagnostics', safeName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Print não encontrado' });
+  }
+  res.sendFile(filePath);
+});
+
+app.delete('/api/ia/diagnostics', (req, res) => {
+  vigiaEngine.clearDiagnostics();
+  res.json({ success: true });
+});
+
+/**
  * ROTA DA API: Notificar Alarme de IA para todas as TVs / Dashboards conectados
  */
 app.post('/api/ia/alert', (req, res) => {
